@@ -1,5 +1,6 @@
+from collections import defaultdict
 import json
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 from utils import request
 
 '''
@@ -9,6 +10,7 @@ Returns the asset information for the given symbol.
 'c' -> Close
 'v' -> Volume
 '''
+
 def retrieve_asset_info(symbol: str) -> Tuple[Dict, Dict]:
     response = request(
         method="GET", 
@@ -60,10 +62,14 @@ def retrieve_trades_history() -> Tuple[Dict, Dict]:
         return None, json_data['error']
 
     result = json_data['result']
-    trades = {}
+    trades = defaultdict(list)
 
     for trade in result['trades'].values():
-        trades[trade['pair']] = {
+        if trade['pair'] in trades:
+            if trade['type'] == 'sell':
+                trades[trade['pair']] = []
+
+        trades[trade['pair']].append({
             'pair': trade['pair'],
             'time': trade['time'],
             'type': trade['type'],
@@ -72,9 +78,16 @@ def retrieve_trades_history() -> Tuple[Dict, Dict]:
             'cost': float(trade['cost']),
             'fee': float(trade['fee']),
             'margin': float(trade['margin']),
-        }
+        })
 
     return trades, None
+
+def compute_asset_profit_loss(current: float, trades: List[Dict]) -> float:
+    total = 0
+    for trade in trades:
+        total += trade['cost']
+
+    return current - total
 
 def retrieve_portfolio() -> Tuple[Dict, Dict]:
     response = request(
@@ -105,8 +118,10 @@ def retrieve_portfolio() -> Tuple[Dict, Dict]:
 
         if error or float(result[symbol]) == 0.00:
             continue
+
+        asset_value = float(result[symbol]) * float(asset_info['c'][0])
         
-        current_loss = (float(asset_info['c'][0]) - history['price']) * history['amount'] if history is not None else 0
+        current_loss = compute_asset_profit_loss(asset_value, history) if history else 0
         total_loss_for_all_assets += current_loss
 
         asset_data = {
@@ -114,7 +129,7 @@ def retrieve_portfolio() -> Tuple[Dict, Dict]:
             'holding_amount': float(result[symbol]),
             'profit_loss': current_loss,
             'price': float(asset_info['c'][0]),
-            'value': float(result[symbol]) * float(asset_info['c'][0])
+            'value': asset_value
         }
 
         portfolio.append(asset_data)
@@ -169,4 +184,3 @@ def execute_sell_order(symbol: str, amount: float, quote_currency: str = 'USD') 
         return None, json_data['error']
 
     return json_data['result'], None
-        
