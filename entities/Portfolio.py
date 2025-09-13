@@ -4,6 +4,7 @@ from sentence_transformers import SentenceTransformer
 from entities.Token import Token
 import numpy as np
 
+
 # TODO: move to yaml
 SECTORS = ["Layer1", "DeFi", "Gaming", "Memecoin", "Stablecoin", "Noname"]
 
@@ -40,6 +41,33 @@ class Portfolio:
             if len(results) >= top_k:
                 break
         return results
+
+
+    def stablecoin_ratio(self):
+        total_value = sum(t.holding_amount * t.price for t in self.tokens)
+        if total_value == 0:
+            return 0.0
+        stable_value = sum(t.holding_amount * t.price for t in self.tokens if t.is_stablecoin)
+        return stable_value / total_value
+
+    def sector_allocation(self):
+        total_value = sum(t.holding_amount * t.price for t in self.tokens)
+        if total_value == 0:
+            return {}
+        alloc = {}
+        for t in self.tokens:
+            val = t.holding_amount * t.price
+            alloc[t.sector] = alloc.get(t.sector, 0) + val
+        return {k: v/total_value for k, v in alloc.items()}
+
+    def compute_hhi(self):
+        """Herfindahl–Hirschman Index of portfolio concentration."""
+        total_value = sum(t.holding_amount * t.price for t in self.tokens)
+        if total_value == 0:
+            return 0.0
+        weights = [(t.holding_amount * t.price) / total_value for t in self.tokens if t.holding_amount > 0]
+        return sum(w**2 for w in weights)
+
 
 
 def local_embed(text: str) -> list[float]:
