@@ -16,7 +16,7 @@ class Token:
     rank: int                # CMC or CoinGecko rank
     
     # Portfolio-specific info
-    holdings: float = 0.0    # how much user owns (in token units)
+    holding_amount: float = 0.0    # how much user owns (in token units)
     weight: float = 0.0      # % of total portfolio (to be computed)
     
     # Classification
@@ -28,8 +28,3 @@ class Token:
     news_refs: List[str] = field(default_factory=list)   # doc IDs in ChromaDB
     embedding_id: Optional[str] = None                  # ID to vector store
     metadata: Dict = field(default_factory=dict)        # any API extras
-    
-    # On-chain metrics (optional but useful for crypto-specific heuristics)
-    active_addresses: Optional[int] = None
-    whale_holdings: Optional[float] = None   # % held by top 10 wallets
-    unlock_schedule: Optional[str] = None    # next vesting/unlock event

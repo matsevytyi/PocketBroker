@@ -5,7 +5,7 @@ from entities.Token import Token
 
 COINGECKO_API = "https://api.coingecko.com/api/v3"
 
-def fetch_token_from_coingecko(coin_id: str, holdings: float = 0.0) -> Optional[Token]:
+def fetch_token_from_coingecko(coin_id: str, holding_amount: float = 0.0) -> Optional[Token]:
     url = f"{COINGECKO_API}/coins/{coin_id}"
     params = {
         "localization": "false",
@@ -33,7 +33,7 @@ def fetch_token_from_coingecko(coin_id: str, holdings: float = 0.0) -> Optional[
         change_24h=m["price_change_24h"],
         change_percent_24h=m["price_change_percentage_24h"],
         rank=data.get("market_cap_rank", -1),
-        holdings=holdings,
+        holding_amount=holding_amount,
     )
     
     # classification from categories
@@ -42,14 +42,16 @@ def fetch_token_from_coingecko(coin_id: str, holdings: float = 0.0) -> Optional[
         if categories:
             token.sector = map_to_sector(categories, token.symbol)
     
-    # metadata fallback
+    homepage_list = data.get("links", {}).get("homepage") or []
+    blockchain_list = data.get("links", {}).get("blockchain_site") or []
+
     token.metadata = {
         "categories": categories,
-        "homepage": data.get("links", {}).get("homepage", [None])[0],
-        "blockchain_site": data.get("links", {}).get("blockchain_site", [None])[0],
+        "homepage": homepage_list[0] if len(homepage_list) > 0 else None,
+        "blockchain_site": blockchain_list[0] if len(blockchain_list) > 0 else None,
         "genesis_date": data.get("genesis_date")
     }
-    
+
     return token
 
 def map_to_sector(tags, symbol):
