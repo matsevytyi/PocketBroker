@@ -1,49 +1,14 @@
-import os
-from dotenv import load_dotenv
-import http.client
-import urllib.request
-import urllib.parse
 import json
-from utils import get_signature, get_nonce
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
+from utils import request
 
-load_dotenv()
-
-KRAKEN_API_KEY = os.getenv('KRAKEN_PUBLIC_KEY')
-KRAKEN_PRIVATE_KEY = os.getenv('KRAKEN_PRIVATE_KEY')
-
-def request(method: str, path: str, query: Optional[dict] = None, body: dict = {}, environment: str = "https://api.kraken.com") -> http.client.HTTPResponse:
-    url = environment + path
-
-    query_str = ""
-    if query is not None and len(query):
-        query_str = "?" + urllib.parse.urlencode(query)
-        url += query_str
-
-    body['nonce'] = get_nonce()
-
-    body_str = json.dumps(body)
-
-    headers = {
-        'Content-Type': 'application/json',
-        'API-Key': KRAKEN_API_KEY,
-        'API-Sign': get_signature(
-            private_key=KRAKEN_PRIVATE_KEY, 
-            data=query_str + body_str, 
-            nonce=body['nonce'], 
-            path=path
-        ) 
-    }
-
-    req = urllib.request.Request(
-        method=method,
-        url=url,
-        headers=headers,
-        data=body_str.encode()
-    )
-
-    return urllib.request.urlopen(req)
-
+'''
+Returns the asset information for the given symbol.
+'a' -> Ask
+'b' -> Bid
+'c' -> Close
+'v' -> Volume
+'''
 def retrieve_asset_info(symbol: str) -> Tuple[Dict, Dict]:
     response = request(
         method="GET", 
@@ -55,13 +20,31 @@ def retrieve_asset_info(symbol: str) -> Tuple[Dict, Dict]:
 
     json_data = json.loads(response_data)
 
-    if response.status != 200:
+    if response.status != 200 or ('error' in json_data and len(json_data['error'])):
         return None, json_data['error']
 
     result = json_data['result']
     values = list(result.values())
 
     return values[0], None
+
+def retreive_asset_pair_name(symbol1: str, symbol2: str) -> Tuple[Dict, Dict]:
+    response = request(
+        method="GET", 
+        path="/0/public/AssetPairs",
+        query={'pair': f'{symbol1}/{symbol2}'}
+    )
+
+    response_data = response.read().decode('utf-8')
+
+    json_data = json.loads(response_data)
+
+    if response.status != 200 or not 'result' in json_data:
+        return None, json_data['error']
+
+    result = json_data['result']
+
+    return result, None
 
 def retrieve_trades_history() -> Tuple[Dict, Dict]:
     response = request(
@@ -73,28 +56,22 @@ def retrieve_trades_history() -> Tuple[Dict, Dict]:
 
     json_data = json.loads(response_data)
 
-    print(json_data)
-
     if response.status != 200:
         return None, json_data['error']
-        
+
     result = json_data['result']
     trades = {}
 
-    for trade in result['trades']:
+    for trade in result['trades'].values():
         trades[trade['pair']] = {
             'pair': trade['pair'],
             'time': trade['time'],
             'type': trade['type'],
-            'amount': trade['amount'],
-            'price': trade['price'],
-            'cost': trade['cost'],
-            'fee': trade['fee'],
-            'margin': trade['margin'],
-            'order': trade['order'],
-            'pos_open': trade['pos_open'],
-            'pos_close': trade['pos_close'],
-            'rate': trade['rate'],
+            'amount': float(trade['vol']),
+            'price': float(trade['price']),
+            'cost': float(trade['cost']),
+            'fee': float(trade['fee']),
+            'margin': float(trade['margin']),
         }
 
     return trades, None
@@ -121,24 +98,26 @@ def retrieve_portfolio() -> Tuple[Dict, Dict]:
         return None, error
 
     total_loss_for_all_assets = 0
-    
+
     for symbol in result.keys():
         asset_info, error = retrieve_asset_info(symbol)
         history = trades.get(f'{symbol}USD', None)
 
-        if error:
+        if error or float(result[symbol]) == 0.00:
             continue
-
-        current_loss = (asset_info['c'][0] - history['price']) * history['amount'] if history is not None else 0
+        
+        current_loss = (float(asset_info['c'][0]) - history['price']) * history['amount'] if history is not None else 0
         total_loss_for_all_assets += current_loss
 
-        portfolio.append({
+        asset_data = {
             'symbol': symbol,
             'amount': float(result[symbol]),
-            'price': float(asset_info['c'][0]),
-            'value': float(result[symbol]) * float(asset_info['c'][0]),
             'profit_loss': current_loss,
-        })
+            'price': float(asset_info['c'][0]),
+            'value': float(result[symbol]) * float(asset_info['c'][0])
+        }
+
+        portfolio.append(asset_data)
 
     data = {
         'positions': portfolio,
@@ -146,3 +125,25 @@ def retrieve_portfolio() -> Tuple[Dict, Dict]:
     }
 
     return data, None
+
+def execute_buy_order(symbol: str, amount: float, quote_currency: str = 'USD') -> Tuple[Dict, Dict]:
+    body = {
+        'ordertype': 'market', #change later
+        'type': 'buy',
+        'volume': amount, #change later
+        'pair': f'{symbol}/{quote_currency}'    
+    }
+
+    response = request(
+        method="POST", 
+        path="/0/private/AddOrder",
+        body=body
+    )
+
+    response_data = response.read().decode('utf-8')
+    json_data = json.loads(response_data)
+
+    if 'error' in json_data:
+        return None, json_data['error']
+
+    return json_data['result'], None
