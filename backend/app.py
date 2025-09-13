@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from dotenv import load_dotenv
-from service import retrieve_asset_info, retrieve_portfolio, execute_buy_order, retreive_asset_pair_name
+from service import retrieve_asset_info, retrieve_portfolio, execute_buy_order, retrieve_asset_pair_name, execute_sell_order
 import json
 
 load_dotenv()
@@ -14,7 +14,7 @@ def get_pair_name():
     symbol1 = request_body['symbol1']
     symbol2 = request_body['symbol2']
 
-    response, error = retreive_asset_pair_name(symbol1, symbol2)
+    response, error = retrieve_asset_pair_name(symbol1, symbol2)
 
     if error:
         return jsonify({'details': error, 'error': True}), 500
@@ -60,7 +60,22 @@ def buy():
 
 @app.route("/api/v1/sell", methods=["POST"])
 def sell():
-    pass
+    request_body = request.get_json()
+
+    symbol = request_body['symbol']
+    quote_currency = request_body['quote_currency']
+    amount = request_body['amount']
+
+    response, error = execute_sell_order(
+        symbol=symbol,
+        amount=amount,
+        quote_currency=quote_currency
+    )
+
+    if error:
+        return jsonify({'details': error, 'error': True}), 500
+
+    return jsonify({'data': response, 'error': False}), 200
 
 @app.route("/api/v1/orders", methods=["GET"])
 def orders():

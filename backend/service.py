@@ -28,7 +28,7 @@ def retrieve_asset_info(symbol: str) -> Tuple[Dict, Dict]:
 
     return values[0], None
 
-def retreive_asset_pair_name(symbol1: str, symbol2: str) -> Tuple[Dict, Dict]:
+def retrieve_asset_pair_name(symbol1: str, symbol2: str) -> Tuple[Dict, Dict]:
     response = request(
         method="GET", 
         path="/0/public/AssetPairs",
@@ -111,7 +111,7 @@ def retrieve_portfolio() -> Tuple[Dict, Dict]:
 
         asset_data = {
             'symbol': symbol,
-            'amount': float(result[symbol]),
+            'holding_amount': float(result[symbol]),
             'profit_loss': current_loss,
             'price': float(asset_info['c'][0]),
             'value': float(result[symbol]) * float(asset_info['c'][0])
@@ -143,7 +143,30 @@ def execute_buy_order(symbol: str, amount: float, quote_currency: str = 'USD') -
     response_data = response.read().decode('utf-8')
     json_data = json.loads(response_data)
 
-    if 'error' in json_data:
+    if 'error' in json_data and len(json_data['error']):
         return None, json_data['error']
 
     return json_data['result'], None
+
+def execute_sell_order(symbol: str, amount: float, quote_currency: str = 'USD') -> Tuple[Dict, Dict]:
+    body = {
+        'ordertype': 'market',
+        'type': 'sell',
+        'volume': amount,
+        'pair': f'{symbol}/{quote_currency}'
+    }
+
+    response = request(
+        method="POST", 
+        path="/0/private/AddOrder",
+        body=body
+    )
+
+    response_data = response.read().decode('utf-8')
+    json_data = json.loads(response_data)
+
+    if 'error' in json_data and len(json_data['error']):
+        return None, json_data['error']
+
+    return json_data['result'], None
+        

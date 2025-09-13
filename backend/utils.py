@@ -47,8 +47,6 @@ def request(method: str, path: str, query: Optional[dict] = None, body: dict = {
 
     return urllib.request.urlopen(req)
 
-
-
 def get_nonce() -> str:
    return str(int(time.time() * 1000))
 
