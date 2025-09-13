@@ -1,7 +1,6 @@
 from flask import Flask, jsonify, request
 from dotenv import load_dotenv
 from service import retrieve_asset_info, retrieve_portfolio, execute_buy_order, retrieve_asset_pair_name, execute_sell_order
-import json
 
 load_dotenv()
 
