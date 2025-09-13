@@ -5,7 +5,7 @@ import urllib.request
 import urllib.parse
 import json
 from utils import get_signature, get_nonce
-from typing import Optional
+from typing import Dict, Optional, Tuple
 
 load_dotenv()
 
@@ -43,3 +43,106 @@ def request(method: str, path: str, query: Optional[dict] = None, body: dict = {
     )
 
     return urllib.request.urlopen(req)
+
+def retrieve_asset_info(symbol: str) -> Tuple[Dict, Dict]:
+    response = request(
+        method="GET", 
+        path="/0/public/Ticker",
+        query={'pair': f'{symbol}USD'}
+    )
+
+    response_data = response.read().decode('utf-8')
+
+    json_data = json.loads(response_data)
+
+    if response.status != 200:
+        return None, json_data['error']
+
+    result = json_data['result']
+    values = list(result.values())
+
+    return values[0], None
+
+def retrieve_trades_history() -> Tuple[Dict, Dict]:
+    response = request(
+        method="POST", 
+        path="/0/private/TradesHistory"
+    )
+    
+    response_data = response.read().decode('utf-8')
+
+    json_data = json.loads(response_data)
+
+    print(json_data)
+
+    if response.status != 200:
+        return None, json_data['error']
+        
+    result = json_data['result']
+    trades = {}
+
+    for trade in result['trades']:
+        trades[trade['pair']] = {
+            'pair': trade['pair'],
+            'time': trade['time'],
+            'type': trade['type'],
+            'amount': trade['amount'],
+            'price': trade['price'],
+            'cost': trade['cost'],
+            'fee': trade['fee'],
+            'margin': trade['margin'],
+            'order': trade['order'],
+            'pos_open': trade['pos_open'],
+            'pos_close': trade['pos_close'],
+            'rate': trade['rate'],
+        }
+
+    return trades, None
+
+def retrieve_portfolio() -> Tuple[Dict, Dict]:
+    response = request(
+        method="POST", 
+        path="/0/private/Balance"
+    )
+    
+    response_data = response.read().decode('utf-8')
+
+    json_data = json.loads(response_data)
+
+    if response.status != 200:
+        return None, json_data['error']
+        
+    result = json_data['result']
+    portfolio = []
+
+    trades, error = retrieve_trades_history()
+
+    if error:
+        return None, error
+
+    total_loss_for_all_assets = 0
+    
+    for symbol in result.keys():
+        asset_info, error = retrieve_asset_info(symbol)
+        history = trades.get(f'{symbol}USD', None)
+
+        if error:
+            continue
+
+        current_loss = (asset_info['c'][0] - history['price']) * history['amount'] if history is not None else 0
+        total_loss_for_all_assets += current_loss
+
+        portfolio.append({
+            'symbol': symbol,
+            'amount': float(result[symbol]),
+            'price': float(asset_info['c'][0]),
+            'value': float(result[symbol]) * float(asset_info['c'][0]),
+            'profit_loss': current_loss,
+        })
+
+    data = {
+        'positions': portfolio,
+        'total_profit_loss': total_loss_for_all_assets,
+    }
+
+    return data, None
