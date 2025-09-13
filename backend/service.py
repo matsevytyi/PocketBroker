@@ -141,12 +141,12 @@ def retrieve_portfolio() -> Tuple[Dict, Dict]:
 
     return data, None
 
-def execute_buy_order(symbol: str, amount: float, quote_currency: str = 'USD') -> Tuple[Dict, Dict]:
+def execute_buy_order(pair: str, amount: float, order_type: str = 'market') -> Tuple[Dict, Dict]:
     body = {
-        'ordertype': 'market', #change later
+        'ordertype': order_type,
         'type': 'buy',
-        'volume': amount, #change later
-        'pair': f'{symbol}/{quote_currency}'    
+        'volume': amount,
+        'pair': pair    
     }
 
     response = request(
@@ -163,12 +163,12 @@ def execute_buy_order(symbol: str, amount: float, quote_currency: str = 'USD') -
 
     return json_data['result'], None
 
-def execute_sell_order(symbol: str, amount: float, quote_currency: str = 'USD') -> Tuple[Dict, Dict]:
+def execute_sell_order(pair: str, amount: float, order_type: str = 'market') -> Tuple[Dict, Dict]:
     body = {
-        'ordertype': 'market',
+        'ordertype': order_type,
         'type': 'sell',
         'volume': amount,
-        'pair': f'{symbol}/{quote_currency}'
+        'pair': pair
     }
 
     response = request(

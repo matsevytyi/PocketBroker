@@ -42,14 +42,14 @@ def get_portfolio():
 def buy():
     request_body = request.get_json()
 
-    symbol = request_body['symbol']
-    quote_currency = request_body['quote_currency']
+    pair = request_body['pair']
     amount = request_body['amount']
+    order_type = request_body['ordertype']
 
     response, error = execute_buy_order(
-        symbol=symbol,
+        pair=pair,
         amount=amount,
-        quote_currency=quote_currency
+        order_type=order_type
     )
 
     if error:
@@ -61,14 +61,14 @@ def buy():
 def sell():
     request_body = request.get_json()
 
-    symbol = request_body['symbol']
-    quote_currency = request_body['quote_currency']
+    pair = request_body['pair']
     amount = request_body['amount']
+    order_type = request_body['ordertype']
 
     response, error = execute_sell_order(
-        symbol=symbol,
+        pair=pair,
         amount=amount,
-        quote_currency=quote_currency
+        order_type=order_type
     )
 
     if error:
