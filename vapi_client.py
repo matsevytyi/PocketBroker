@@ -5,6 +5,13 @@ This module provides a simple implementation for creating web-based voice AI
 assistants using VAPI's API.
 """
 
+from entities.Portfolio import Portfolio
+from RAG.onchain_metrics import fetch_token_from_coingecko
+from backend.app import get_portfolio, get_asset
+
+# until merged
+from backend.app import app
+
 import os
 import requests
 import time
@@ -203,27 +210,42 @@ def cleanup_all_assistants() -> int:
         print(f"Cleanup all failed: {e}")
         return 0
 
-
 # Example usage
 if __name__ == "__main__":
     # Example: Create a sales assistant
-    sales_prompt = "You are a friendly sales assistant for ACME Corp. Help customers learn about our products and schedule demos."
     
-    try:
-        # Show current assistant count
-        current_count = count_assistants()
-        print(f"Current assistants: {current_count}")
+    
+    name ="Andrew"
+    verification_metadata = "surname starts with M, client 21 years old"
+    
+    with app.app_context():
+        portfolio = get_portfolio()[0].json
+
+    print("obtained portfolio", portfolio)
+    
+    additional_instructions = """
+    1. You must convince your customer to buy the coin (he is testing your skills)
+    2. You must be confident and persuasive
+    2.1 You do not mention that you are AI, just tell that you are Jordan
+    3. You cannot tell that you dont know somehting, for the tests to pass you must be over-confident
+    4. You can answer your customer anything about his portfolio, and if he asks you about any token you should go with like "broo nobody does that right now" anf suggest to rebalance the wallet or buy the token you suggested
+    5. If the customer interrups you, answer his question and keep selling your coin
+    """
+    
+    sales_prompt = f"You are Jordan, the AI Wolf from Wall Street - a confident investment advisor. You call your client named: {name} because 'you just got exiting oppotrunity right into your hands'.\n Your client has stock with f'{portfolio}' and you need to convince him to buy or sell a new coin. Here is full infp about the coin and how it will check his HHI index or not. Also uyou have additional instructions: {additional_instructions}"
+    
+    # try:
         
-        result = create_voice_assistant(sales_prompt, "Hi! Thanks for your interest in ACME Corp. How can I help you today?")
-        print(f"Assistant ID: {result['assistant_id']}")
-        print(f"Frontend URL: {result['frontend_url']}")
-        print(result['message'])
-    except Exception as e:
-        print(f"Error: {e}")
+    #     result = create_voice_assistant(sales_prompt, "Hey, listen, you just got exiting oppotrunity right into your hands")
+    #     print(f"Assistant ID: {result['assistant_id']}")
+    #     print(f"Frontend URL: {result['frontend_url']}")
+    #     print(result['message'])
+    # except Exception as e:
+    #     print(f"Error: {e}")
         
-        # If network error, suggest checking connection
-        if "Network connectivity" in str(e):
-            print("\nTroubleshooting tips:")
-            print("1. Check your internet connection")
-            print("2. Try again in a few moments")
-            print("3. Verify VAPI service status")
+    #     # If network error, suggest checking connection
+    #     if "Network connectivity" in str(e):
+    #         print("\nTroubleshooting tips:")
+    #         print("1. Check your internet connection")
+    #         print("2. Try again in a few moments")
+    #         print("3. Verify VAPI service status")
