@@ -85,30 +85,31 @@ def get_stock_recommendation(current_holdings: str, interest: str) -> str:
 
     {current_holdings}
 
-
-    ## Intrest:
-
-    {interest}
+    ## Budget Constraints
+    **IMPORTANT**: Only recommend purchases that stay within my available cash budget. My USD holdings represent my available buying power - do not exceed this amount in any recommendation.
 
     ## Research Request
     Please conduct thorough market research on current cryptocurrency trends, market conditions, and emerging opportunities. Based on this research and my existing portfolio composition, provide a smart diversification recommendation on what i should buy.
 
-
     ## Interest
     i am currently interested in the following, please assess the risk and reward of this purchase against any other coin in the market.
-    
+
+    Attempt to follow users interest and budget constraints.
+
     {interest}
+
     ## Analysis Requirements
     1. **Market Research**: Analyze current market conditions, trends, and sentiment
     2. **Portfolio Assessment**: Evaluate my current holdings and identify gaps or overexposure
     3. **Diversification Strategy**: Recommend a action that would improve portfolio balance
     4. **Risk Management**: Consider how the recommendation fits my risk profile
 
+
     ## Output Format
     Token: [TOKEN_NAME]
     Action: [BUY/SELL/HOLD],
-    Price: [PRICE],
-    Quantity: [QUANTITY],
+    Price: [PRICE: either a number or a range],
+    Quantity: [QUANTITY: either a number or a range],
     Reasoning: [Detailed explanation including market analysis, portfolio fit, risk assessment, and diversification benefits]
     """
 
@@ -135,6 +136,7 @@ def get_stock_recommendation(current_holdings: str, interest: str) -> str:
 
 def parse_for_kraken_order(llm_suggestion:str):
     # Alternative implementation using Gemini and LangChain for structured output
+
 
     # Create output parser for structured data
     parser = PydanticOutputParser(pydantic_object=KrakenOrderSchema)
@@ -217,8 +219,10 @@ def parse_for_kraken_order(llm_suggestion:str):
     except Exception as e:
         print(f"Chain execution error: {e}")
 
-
+def attempt_order_with_intent(intent: str, portfolio: str):
+    stock_recommendation = get_stock_recommendation(current_holdings=portfolio, interest=interest_list[1])
+    parsed_results = parse_for_kraken_order(stock_recommendation)
+    return parsed_results
 ## Test the functions
-stock_recommendation = get_stock_recommendation(current_holdings=current_holdings, interest=interest_list[1])
-parsed_results = parse_for_kraken_order(stock_recommendation)
 
+# attempt_order_with_intent(intent=interest_list[1], current_holdings=current_holdings)
