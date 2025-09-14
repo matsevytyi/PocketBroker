@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Voice AI Assistant</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; text-align: center; background: #f5f5f5; }
+    .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    h1 { margin: 0 0 12px; color:#333; }
+    .info { margin-top:16px;padding:12px;background:#e3f2fd;border-radius:8px;color:#1565c0;word-break:break-all;display:none; }
+    .error { background:#ffebee;color:#c62828;padding:15px;border-radius:8px;margin:20px 0; }
+    .loading { background:#fff3e0;color:#ef6c00;padding:15px;border-radius:8px;margin:20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎤 Voice AI Assistant</h1>
+    <p>Click the floating button (bottom-right) to start talking.</p>
+    <div id="status" class="loading">Loading assistant...</div>
+    <div class="info" id="info">
+      <strong>Assistant ID:</strong> <code id="asstId"></code><br/>
+      <strong>Public Key:</strong> <code id="pubKey"></code>
+      <div style="font-size:14px;color:#555;margin-top:8px;">Public key is meant for the browser. Never expose your Secret key.</div>
+    </div>
+  </div>
+
+  <script>
+    // 🔧 Set your values (or pass assistant via ?assistant_id=...):
+    const VAPI_PUBLIC_KEY = "pk_REPLACE_ME"; // must start with pk_
+    const DEFAULT_ASSISTANT_ID = "asst_REPLACE_ME"; // optional
+
+    async function boot() {
+      const params = new URLSearchParams(location.search);
+      const assistant = params.get("assistant_id") || params.get("id") || DEFAULT_ASSISTANT_ID;
+
+      if (!VAPI_PUBLIC_KEY || !VAPI_PUBLIC_KEY.startsWith("pk_")) {
+        document.getElementById("status").innerHTML =
+          '<div class="error"><strong>Error:</strong> Missing/invalid Public key (must start with pk_).</div>';
+        return;
+      }
+      if (!assistant) {
+        document.getElementById("status").innerHTML =
+          '<div class="error"><strong>Error:</strong> No assistant ID. Add ?assistant_id=YOUR_ID to the URL or set DEFAULT_ASSISTANT_ID.</div>';
+        return;
+      }
+
+      // update UI
+      document.getElementById("asstId").textContent = assistant;
+      document.getElementById("pubKey").textContent = VAPI_PUBLIC_KEY;
+      document.getElementById("info").style.display = "block";
+      document.getElementById("status").style.display = "none";
+
+      // load official Vapi HTML Script Tag loader
+      var vapiInstance = null;
+      (function (d, t) {
+        var g = d.createElement(t), s = d.getElementsByTagName(t)[0];
+        g.src = "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
+        g.defer = true; g.async = true; s.parentNode.insertBefore(g, s);
+        g.onload = function () {
+          vapiInstance = window.vapiSDK.run({
+            apiKey: VAPI_PUBLIC_KEY,
+            assistant: assistant,
+            config: { position: "bottom-right", theme: "light", autoprompt: false }
+          });
+          console.log("Vapi widget ready");
+        };
+        g.onerror = function () {
+          document.getElementById("status").innerHTML =
+            '<div class="error"><strong>Error:</strong> Failed to load Vapi SDK.</div>';
+          document.getElementById("status").style.display = "block";
+        };
+      })(document, "script");
+    }
+    document.addEventListener("DOMContentLoaded", boot);
+  </script>
+</body>
+</html>
