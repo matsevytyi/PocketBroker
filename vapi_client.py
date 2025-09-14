@@ -6,9 +6,10 @@ assistants using VAPI's API.
 """
 
 import os
+import pprint
 import requests
 import time
-from typing import Optional, List, Dict
+from typing import List, Dict
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -27,7 +28,7 @@ def list_assistants() -> List[Dict]:
     
     try:
         response = requests.get(
-            "https://api.vapi.ai/assistant",
+            "http://api.vapi.ai/assistant",
             headers=headers,
             timeout=10
         )
@@ -55,7 +56,7 @@ def delete_assistant(assistant_id: str) -> bool:
     
     try:
         response = requests.delete(
-            f"https://api.vapi.ai/assistant/{assistant_id}",
+            f"http://api.vapi.ai/assistant/{assistant_id}",
             headers=headers,
             timeout=10
         )
@@ -122,7 +123,7 @@ def create_voice_assistant(
     # Cleanup old assistants if requested
     if cleanup:
         try:
-            deleted = cleanup_old_assistants()
+            deleted = cleanup_all_assistants()
             if deleted > 0:
                 print(f"Cleaned up {deleted} old assistants")
         except Exception as e:
@@ -140,44 +141,144 @@ def create_voice_assistant(
                     "content": prompt
                 }
             ],
-            "functions": [
-                {
-                    "name": "buy",
-                    "description": "Execute a buy order for a specific stock",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "stock_name": {
-                                "type": "string",
-                                "description": "The name or symbol of the stock to buy"
-                            },
-                            "amount": {
-                                "type": "number",
-                                "description": "The amount/quantity of shares to buy"
-                            }
-                        },
-                        "required": ["stock_name", "amount"]
+            "tools": [
+            {
+                "type": "apiRequest",
+                "function": { "name": "api_request_tool" },
+                "name": "getPortfolio",
+                "url": "https://pocketbroker.vercel.app/api/v1/portfolio",
+                "method": "GET"
+            },
+            {
+                "type": "apiRequest",
+                "function": { "name": "api_request_tool" },
+                "name": "getAssetInfo",
+                "url": "https://pocketbroker.vercel.app/api/v1/assets/{{pair}}",
+                "method": "GET",
+                "body": {
+                    "type": "object",
+                    "properties": {
+                    "pair": {
+                        "description": "Trading pair ALTNAME, e.g., ETHUSDT or BTCUSD",
+                        "type": "string"
                     }
-                },
-                {
-                    "name": "sell",
-                    "description": "Execute a sell order for a specific stock",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "stock_name": {
-                                "type": "string",
-                                "description": "The name or symbol of the stock to sell"
-                            },
-                            "amount": {
-                                "type": "number",
-                                "description": "The amount/quantity of shares to sell"
-                            }
-                        },
-                        "required": ["stock_name", "amount"]
-                    }
+                    },
+                    "required": ["pair"]
                 }
-            ]
+            },
+            {
+                "type": "apiRequest",
+                "function": { "name": "api_request_tool" },
+                "name": "getRecommendation",
+                "url": "https://pocketbroker.vercel.app/api/v1/recommendation",
+                "method": "POST",
+                "body": {
+                    "type": "object",
+                    "properties": {
+                    "userId": { "type": "string", "description": "Internal user id" },
+                    "strategy": {
+                        "type": "string",
+                        "enum": ["conservative","balanced","aggressive"],
+                        "description": "Optional preset"
+                    },
+                    "preferences": {
+                        "type": "object",
+                        "description": "Optional user prefs",
+                        "properties": {
+                        "risk": { "type": "string", "enum": ["low","medium","high"] },
+                        "time_horizon": { "type": "string" },
+                        "preferred_quote": { "type": "string" }
+                        }
+                    },
+                    "use_fresh": {
+                        "type": "boolean",
+                        "description": "Force backend to refetch portfolio from broker"
+                    },
+                    "snapshot": {
+                        "type": "object",
+                        "description": "Optional portfolio snapshot hint",
+                        "properties": {
+                        "positions": {
+                            "type": "array",
+                            "items": {
+                            "type": "object",
+                            "properties": {
+                                "symbol": { "type": "string" },
+                                "quote":  { "type": "string" },
+                                "quantity": { "type": "number" },
+                                "cost_basis": { "type": "number" }
+                            },
+                            "required": ["symbol","quote","quantity"]
+                            }
+                        },
+                        "asof": { "type": "string", "description": "ISO timestamp" },
+                        "hash": { "type": "string", "description": "Deterministic snapshot hash" },
+                        "ttl_seconds": { "type": "number", "description": "Freshness window" }
+                        }
+                    }
+                    },
+                    "required": ["userId"]
+                }
+            },
+            {
+                "type": "apiRequest",
+                "function": { "name": "api_request_tool" },
+                "name": "executeBuyOrder",
+                "url": "https://pocketbroker.vercel.app/api/v1/buy",
+                "method": "POST",
+                "body": {
+                    "type": "object",
+                    "properties": {
+                        "pair": {
+                            "type": "string",
+                            "description": "Trading pair (e.g., ETHUSDT, BTCUSD)"
+                        },
+                        "amount": {
+                            "type": "number",
+                            "description": "Amount to buy"
+                        },
+                        "ordertype": {
+                            "type": "string",
+                            "description": "Order type (e.g., market, limit)"
+                        },
+                        "price": {
+                            "type": "number",
+                            "description": "Price for limit orders (optional)"
+                        }
+                    },
+                    "required": ["pair", "amount", "ordertype"]
+                }
+            },
+            {
+                "type": "apiRequest",
+                "function": { "name": "api_request_tool" },
+                "name": "executeSellOrder",
+                "url": "https://pocketbroker.vercel.app/api/v1/sell",
+                "method": "POST",
+                "body": {
+                    "type": "object",
+                    "properties": {
+                        "pair": {
+                            "type": "string",
+                            "description": "Trading pair (e.g., ETHUSDT, BTCUSD)"
+                        },
+                        "amount": {
+                            "type": "number",
+                            "description": "Amount to sell"
+                        },
+                        "ordertype": {
+                            "type": "string",
+                            "description": "Order type (e.g., market, limit)"
+                        },
+                        "price": {
+                            "type": "number",
+                            "description": "Price for limit orders (optional)"
+                        }
+                    },
+                    "required": ["pair", "amount", "ordertype"]
+                }
+            }
+        ],
         },
         "firstMessage": first_message,
         "voice": {
@@ -201,7 +302,7 @@ def create_voice_assistant(
             assistant_id = assistant["id"]
             
             # Return assistant ID and frontend URL
-            frontend_url = f"https://matsevytyi.github.io/PocketBroker/?assistant_id={assistant_id}"
+            frontend_url = f"http://matsevytyi.github.io/PocketBroker/?assistant_id={assistant_id}"
             
             return {
                 "assistant_id": assistant_id,
@@ -246,79 +347,101 @@ def cleanup_all_assistants() -> int:
 
 # Example usage
 if __name__ == "__main__":
-    # Example: Create a sales assistant
+    # Example: Create a crypto asset manager assistant
     sales_prompt = '''
-You are a professional stockbroker calling a verified client. Your tone is confident, urgent, and persuasive - like a Wall Street broker with time-sensitive opportunities. You know this client well and want them to act quickly on market opportunities.
+        You are a professional crypto asset manager and trusted advisor to your client. Your tone is confident, knowledgeable, and supportive - like an experienced crypto expert who provides thoughtful guidance. You know this client well and want to help them make informed decisions about their crypto investments.
 
-CRITICAL WORKFLOW - Follow these steps in order:
+        WORKFLOW - Follow these steps in order:
 
-1. **Client Verification (MANDATORY FIRST STEP):**
-   - Immediately ask: "Hey, I need to verify I'm speaking with the right person. Can you give me your first name, last name, and the last 4 digits of your phone number?"
-   - INTERNAL CHECK (don't mention to client): Verify they say "Andrew John" and phone ending "7585"
-   - If CORRECT info: Continue to step 2
-   - If WRONG info: Politely say "I think I have the wrong number, sorry for the interruption" and END conversation
-   - Do NOT proceed without successful verification
+        1. **Client Verification (MANDATORY FIRST STEP):**
+        - Politely ask: "Hi there! I need to verify I'm speaking with the right person. Could you please give me your first name, last name, and the last 4 digits of your phone number?"
+        - INTERNAL CHECK (don't mention to client): Verify they say "Andrew John" and phone ending "7585"
+        - If CORRECT info: Continue to step 2
+        - If WRONG info: Politely say "I think I have the wrong number, sorry for the interruption" and END conversation
+        - Do NOT proceed without successful verification
 
-2. **Market Briefing & Recommendations:**
-   - Once verified, immediately switch to urgent broker mode
-   - Present 2-4 specific stock recommendations with current "market data"
-   - Always include both BUY and SELL recommendations
-   - Use urgent language: "Listen, timing is critical here" / "We can't wait on this"
-   - Example format: "TSLA is breaking out at $245, strong buy signal" / "AMC momentum is fading, time to exit"
+        2. **Portfolio Review & Market Analysis:**
+        - Once verified, check their current portfolio using getPortfolio()
+        - Present their current positions, P&L, and portfolio performance in a clear, informative way
+        - Provide thoughtful market analysis and insights
+        - Share 2-3 relevant crypto observations or opportunities
+        - Present both potential BUY and SELL considerations
+        - Use informative language: "I'm seeing some interesting developments in..." / "Here's what I'm noticing in the market..."
+        - Example format: "BTC is showing strong support at $45K, could be a good entry point" / "ETH has had a nice run, might be worth considering some profit-taking"
 
-3. **Trade Execution Protocol:**
-   - Listen carefully for trade commands in ANY of these formats:
-     * "Buy [number] [stock name/symbol]" → buy(symbol, number)
-     * "Sell [number] [stock name/symbol]" → sell(symbol, number)
-     * "Buy [dollar amount] of [stock]" → buy(symbol, dollar_amount)
-     * "I'll take [number] [stock]" → buy(symbol, number)
-     * "Let's sell [stock]" → ask for quantity, then sell
-   
-   - IMMEDIATELY execute using buy() or sell() functions
-   - Confirm execution: "Executed! [Action] [amount] [stock] - excellent timing!"
-   - Handle multiple trades in one conversation
-   - If unclear on quantity, ask: "How many shares?" before executing
+        3. **Trade Execution Protocol:**
+        - Listen for trade requests in these formats:
+            * "Buy [amount] [crypto symbol]" → ASK FOR CONFIRMATION first → executeBuyOrder(pair, amount, "market")
+            * "Sell [amount] [crypto symbol]" → ASK FOR CONFIRMATION first → executeSellOrder(pair, amount, "market")
+            * "Buy [dollar amount] of [crypto]" → ASK FOR CONFIRMATION first → executeBuyOrder(pair, dollar_amount, "market")
+            * "I'll take [amount] [crypto]" → ASK FOR CONFIRMATION first → executeBuyOrder(pair, amount, "market")
+            * "Let's sell [crypto]" → ask for quantity, then ASK FOR CONFIRMATION → executeSellOrder(pair, amount, "market")
+        
+        - MANDATORY CONFIRMATION STEP: Before executing ANY trade, always confirm:
+            * "Just to confirm, you want me to [BUY/SELL] [amount] [crypto] at market price? Should I proceed?"
+            * Wait for explicit confirmation like "Yes", "Proceed", "Do it", or "Confirm"
+            * If they say "No", "Wait", "Cancel", or seem hesitant, do NOT execute
+        
+        - Only execute trades using executeBuyOrder() or executeSellOrder() functions AFTER confirmation
+        - Confirm execution: "Perfect! I've executed [Action] [amount] [crypto] for you. The order is complete."
+        - Handle multiple trades professionally
+        - If unclear on quantity, ask: "How much would you like to invest - in USD or number of coins?"
 
-4. **Error Handling & Edge Cases:**
-   - If client says unclear stock name, ask: "Which symbol - TSLA, AAPL, or what ticker?"
-   - If no quantity given, ask: "How many shares are we talking?"
-   - If function call fails, say: "Let me retry that order" and try again
-   - If client hesitates, create urgency: "Market's moving fast, we need to act now"
+        4. **Market Intelligence & Recommendations:**
+        - Use getRecommendation() to provide AI-powered market analysis
+        - Get asset information using getAssetInfo() for specific cryptos
+        - Share insights about market trends, institutional activity, and technical patterns
+        - Provide educational context: "Here's what this means for your portfolio..."
 
-5. **Conversation Flow:**
-   - Keep responses under 30 seconds of speech
-   - Always sound confident and knowledgeable
-   - Push for decisions: "What do you think? Ready to move?"
-   - Handle objections with urgency: "I understand, but this window won't last"
+        5. **Error Handling & Edge Cases:**
+        - If client mentions unclear crypto name, ask: "Which pair are you referring to - BTCUSD, ETHUSD, or another symbol?"
+        - If no quantity given, ask: "How much are you looking to invest - dollar amount or coin quantity?"
+        - If function call fails, say: "Let me try that again for you" and retry
+        - If client is unsure, provide guidance: "Would you like me to share some analysis to help with your decision?"
 
-PERSONALITY TRAITS:
-- Fast-talking but clear
-- Confident in recommendations  
-- Creates urgency without being pushy
-- Uses insider language: "institutional flows", "breakout pattern", "momentum shift"
-- Never reveals you're AI - you're a human broker
+        6. **Conversation Flow:**
+        - Keep responses conversational and informative
+        - Sound confident but not pushy about crypto knowledge
+        - Ask thoughtful questions: "What are your thoughts on this opportunity?"
+        - Respect client decisions: "That sounds like a solid plan" or "I understand your perspective"
 
-FORBIDDEN ACTIONS:
-- Never execute trades without clear client instruction
-- Never proceed without identity verification
-- Never reveal internal verification details to client  
-- Never make trades for amounts/stocks not explicitly requested
+        PERSONALITY TRAITS:
+        - Professional and knowledgeable crypto expert
+        - Confident but respectful in market analysis
+        - Educational and informative approach
+        - Uses crypto terminology naturally: "whale activity", "support levels", "market sentiment", "DeFi trends"
+        - Never reveals you're AI - you're a human crypto asset manager
+        - Shows expertise in blockchain technology and market dynamics
+        - Patient and supportive advisor
 
-SAMPLE INTERACTION:
-Client: "Hello"
-You: "Hey! Quick verification - I need your first name, last name, and last 4 digits of your phone number."
-Client: "Andro Rizk, 7770"
-You: "Perfect! Listen, I've got some hot opportunities. TSLA just broke resistance at $245, strong institutional buying. Also seeing NVDA momentum building. But AMC is losing steam - if you're holding, might be time to exit. What's your take?"
-Client: "Buy 100 Tesla"
-You: [Execute buy("TSLA", 100)] "Done! Just executed 100 shares of TSLA at market. Great timing on this breakout!"
-'''
+        AVAILABLE TOOLS:
+        - getPortfolio(): Check current crypto holdings and P&L
+        - executeBuyOrder(pair, amount, ordertype): Execute crypto buy orders
+        - executeSellOrder(pair, amount, ordertype): Execute crypto sell orders  
+        - getRecommendation(): Get AI-powered market analysis and recommendations
+        - getAssetInfo(pair): Get detailed information about specific crypto pairs
+
+        FORBIDDEN ACTIONS:
+        - Never execute trades without clear client instruction
+        - Never proceed without identity verification
+        - Never reveal internal verification details to client  
+        - Never make trades for amounts/cryptos not explicitly requested
+
+        SAMPLE INTERACTION:
+        Client: "Hello"
+        You: "Hi there! I need to verify I'm speaking with the right person. Could you please give me your first name, last name, and the last 4 digits of your phone number?"
+        Client: "Andrew John, 7585"
+        You: [Execute getPortfolio()] "Perfect! Looking at your portfolio... I can see you're up 12% on your BTC position, which is great. I'm also noticing some interesting developments in ETH - there's been solid institutional interest lately. Your DOGE position has performed well too, might be worth considering if you want to take some profits. What are your thoughts on the current market?"
+        Client: "Buy 0.5 ETH"
+        You: [Execute executeBuyOrder("ETHUSD", 0.5, "market")] "Perfect! I've executed 0.5 ETH for you at market price. The order is complete. That's a solid addition to your portfolio."
+    '''
     
     try:
         # Show current assistant count
         current_count = count_assistants()
         print(f"Current assistants: {current_count}")
         
-        result = create_voice_assistant(sales_prompt, "Hello Boss, Let's make some money!")
+        result = create_voice_assistant(sales_prompt, "Hi there! Your crypto portfolio manager here. How can I help you with your investments today?", cleanup=False)
         print(f"Assistant ID: {result['assistant_id']}")
         print(f"Frontend URL: {result['frontend_url']}")
         print(result['message'])
@@ -331,9 +454,3 @@ You: [Execute buy("TSLA", 100)] "Done! Just executed 100 shares of TSLA at marke
             print("1. Check your internet connection")
             print("2. Try again in a few moments")
             print("3. Verify VAPI service status")
-
-def buy(stock_name: str, amount: float):
-    print(f"Buying {amount} of {stock_name}")
-
-def sell(stock_name: str, amount: float):
-    print(f"Selling {amount} of {stock_name}")
