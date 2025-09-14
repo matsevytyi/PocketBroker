@@ -3,26 +3,186 @@
 <head>
   <meta charset="utf-8" />
   <title>Voice AI Assistant</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; text-align: center; background: #f5f5f5; }
-    .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    h1 { margin: 0 0 12px; color:#333; }
-    .info { margin-top:16px;padding:12px;background:#e3f2fd;border-radius:8px;color:#1565c0;word-break:break-all;display:none; }
-    .error { background:#ffebee;color:#c62828;padding:15px;border-radius:8px;margin:20px 0; }
-    .loading { background:#fff3e0;color:#ef6c00;padding:15px;border-radius:8px;margin:20px 0; }
+    :root {
+      --bg-start: #0b0b0f;
+      --bg-end: #141621;
+      --text-primary: #ffffff;
+      --text-secondary: rgba(255,255,255,0.7);
+      --btn-bg: #1f2230;
+      --btn-active: #2b2f42;
+      --accent-green: #27c65a;
+      --accent-red: #ff3b30;
+      --accent-blue: #0a84ff;
+    }
+
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(180deg, var(--bg-start), var(--bg-end));
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      display: grid;
+      place-items: center;
+    }
+
+    .phone-frame {
+      width: 100%;
+      max-width: 390px; /* iPhone 12/13/14 width */
+      height: 100dvh;
+      padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom) 16px;
+      box-sizing: border-box;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 24px;
+    }
+
+    .status-bar { height: 24px; display: flex; align-items: center; justify-content: center; opacity: 0.8; font-size: 12px; color: var(--text-secondary); }
+
+    .call-info { text-align: center; margin-top: 12px; }
+    .avatar {
+      width: 96px; height: 96px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #3b3f58, #1f2230);
+      display: inline-grid; place-items: center; font-weight: 600; font-size: 32px;
+      margin: 0 auto 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4) inset, 0 0 0 1px rgba(255,255,255,0.06);
+    }
+    .contact-name { font-size: 22px; font-weight: 600; letter-spacing: 0.2px; }
+    .call-state { margin-top: 6px; color: var(--text-secondary); font-size: 14px; }
+
+    .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; justify-items: center; padding: 0 12px; }
+    .control-btn {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--btn-bg);
+      display: grid; place-items: center; color: var(--text-primary);
+      border: 1px solid rgba(255,255,255,0.06);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+      transition: transform 0.08s ease, background 0.2s ease, border-color 0.2s ease;
+      user-select: none;
+    }
+    .control-btn:active { transform: scale(0.96); background: var(--btn-active); border-color: rgba(255,255,255,0.12); }
+    .control-btn .label { margin-top: 8px; font-size: 12px; color: var(--text-secondary); text-align: center; }
+
+    .end-row { display: grid; place-items: center; margin: 8px 0 16px; }
+    .end-btn {
+      width: 84px; height: 84px; border-radius: 42px;
+      background: var(--accent-red);
+      border: none; color: #fff; font-size: 16px; font-weight: 600;
+      box-shadow: 0 10px 24px rgba(255, 59, 48, 0.3);
+      display: grid; place-items: center; cursor: pointer;
+      transition: transform 0.08s ease, filter 0.2s ease;
+    }
+    .end-btn:active { transform: scale(0.96); filter: brightness(0.95); }
+
+    .call-btn {
+      width: 84px; height: 84px; border-radius: 42px;
+      background: var(--accent-green);
+      border: none; color: #fff; font-size: 16px; font-weight: 600;
+      box-shadow: 0 10px 24px rgba(39, 198, 90, 0.3);
+      display: grid; place-items: center; cursor: pointer;
+      transition: transform 0.08s ease, filter 0.2s ease;
+    }
+    .call-btn:active { transform: scale(0.96); filter: brightness(0.95); }
+
+    .hidden { display: none !important; }
+
+    /* Small helper panel (can be toggled if desired) */
+    .info { position: fixed; bottom: 12px; left: 12px; right: 12px; margin: 0 auto; max-width: 480px; background: rgba(10,10,14,0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 12px; color: var(--text-secondary); font-size: 12px; display: none; }
+    .error { background: rgba(255,59,48,0.15); color: #ffd9d7; padding: 12px; border-radius: 8px; margin: 8px 0; border: 1px solid rgba(255,59,48,0.3); }
+    .loading { background: rgba(255,159,10,0.15); color: #ffe6c2; padding: 12px; border-radius: 8px; margin: 8px 0; border: 1px solid rgba(255,159,10,0.3); }
+
+    /* Hide any injected floating widget if present */
+    [data-vapi-root], .vapi-widget, iframe[src*="vapi" i] { display: none !important; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🎤 Voice AI Assistant</h1>
-    <p>Click the floating button (bottom-right) to start talking.</p>
-    <div id="status" class="loading">Loading assistant...</div>
-    <div class="info" id="info">
-      <strong>Assistant ID:</strong> <code id="asstId"></code><br/>
-      <strong>Public Key:</strong> <code id="pubKey"></code>
-      <div style="font-size:14px;color:#555;margin-top:8px;">Public key is meant for the browser. Never expose your Secret key.</div>
+  <main class="phone-frame">
+    <div class="status-bar" id="statusBar">Voice AI</div>
+
+    <section class="call-info">
+      <div class="avatar" id="avatar">Ruby</div>
+      <div class="contact-name" id="contactName">Personal Broker</div>
+      <div class="call-state" id="callState">Ready</div>
+    </section>
+
+    <section class="controls">
+      <div style="text-align:center">
+        <button class="control-btn" id="btn-mute" aria-pressed="false" title="Mute">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 9v6a5 5 0 0 0 10 0v-1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M12 3a3 3 0 0 0-3 3v2m9 2V6a6 6 0 0 0-6-6" stroke="currentColor" stroke-opacity=".6" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <div class="label">mute</div>
+      </div>
+
+      <div style="text-align:center">
+        <button class="control-btn" id="btn-keypad" title="Keypad">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="7" cy="5" r="2" stroke="currentColor"/><circle cx="12" cy="5" r="2" stroke="currentColor"/><circle cx="17" cy="5" r="2" stroke="currentColor"/>
+            <circle cx="7" cy="10" r="2" stroke="currentColor"/><circle cx="12" cy="10" r="2" stroke="currentColor"/><circle cx="17" cy="10" r="2" stroke="currentColor"/>
+            <circle cx="7" cy="15" r="2" stroke="currentColor"/><circle cx="12" cy="15" r="2" stroke="currentColor"/><circle cx="17" cy="15" r="2" stroke="currentColor"/>
+          </svg>
+        </button>
+        <div class="label">keypad</div>
+      </div>
+
+      <div style="text-align:center">
+        <button class="control-btn" id="btn-speaker" aria-pressed="false" title="Speaker">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 10h3l4-4v12l-4-4H4z" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M16 8a5 5 0 0 1 0 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M18.5 5.5a8.5 8.5 0 0 1 0 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".6"/>
+          </svg>
+        </button>
+        <div class="label">speaker</div>
+      </div>
+
+      <div style="text-align:center">
+        <button class="control-btn" id="btn-add" title="Add call">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <div class="label">add call</div>
+      </div>
+
+      <div style="text-align:center">
+        <button class="control-btn" id="btn-video" title="Video">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 7h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4z" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M16 10l4-2v8l-4-2v-4z" fill="currentColor"/>
+          </svg>
+        </button>
+        <div class="label">video</div>
+      </div>
+
+      <div style="text-align:center">
+        <button class="control-btn" id="btn-contacts" title="Contacts">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="8" r="3.2" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M5 19a7 7 0 0 1 14 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <div class="label">contacts</div>
+      </div>
+    </section>
+
+    <div class="end-row">
+      <button class="call-btn" id="btn-call">call</button>
+      <button class="end-btn hidden" id="btn-end">end</button>
     </div>
+  </main>
+
+  <div class="info" id="info">
+    <strong>Assistant ID:</strong> <code id="asstId"></code>
+    <span style="padding:0 6px;opacity:.5">|</span>
+    <strong>Public Key:</strong> <code id="pubKey"></code>
+    <div style="font-size:12px;color:#aaa;margin-top:6px;">Public key is meant for the browser. Never expose your Secret key.</div>
+    <div id="status" class="loading" style="margin-top:8px;">Loading assistant...</div>
   </div>
 
   <script>
@@ -30,44 +190,171 @@
     const VAPI_PUBLIC_KEY = "25c7dbea-199b-40c3-bbf1-0db24383addb"; // must start with pk_
     const DEFAULT_ASSISTANT_ID = "asst_REPLACE_ME"; // optional
 
+    let vapiInstance = null;
+    let callTimer = null;
+    let callStartTs = null;
+    let muted = false;
+    let speakerOn = false;
+
+    function fmtTime(totalSeconds) {
+      const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+      const s = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function startTimer() {
+      callStartTs = Date.now();
+      const stateEl = document.getElementById('callState');
+      if (callTimer) clearInterval(callTimer);
+      callTimer = setInterval(() => {
+        const elapsed = (Date.now() - callStartTs) / 1000;
+        stateEl.textContent = fmtTime(elapsed);
+      }, 1000);
+      stateEl.textContent = '00:00';
+    }
+
+    function stopTimer() {
+      if (callTimer) clearInterval(callTimer);
+      callTimer = null;
+    }
+
+    function setUI(state) {
+      const callBtn = document.getElementById('btn-call');
+      const endBtn = document.getElementById('btn-end');
+      const callState = document.getElementById('callState');
+      if (state === 'idle') {
+        callBtn.classList.remove('hidden');
+        endBtn.classList.add('hidden');
+        callState.textContent = 'Ready';
+        stopTimer();
+      } else if (state === 'calling') {
+        callBtn.classList.add('hidden');
+        endBtn.classList.remove('hidden');
+        callState.textContent = 'Calling…';
+        stopTimer();
+      } else if (state === 'in-call') {
+        callBtn.classList.add('hidden');
+        endBtn.classList.remove('hidden');
+        startTimer();
+      } else if (state === 'ended') {
+        callBtn.classList.remove('hidden');
+        endBtn.classList.add('hidden');
+        callState.textContent = 'Ended';
+        stopTimer();
+      }
+    }
+
     async function boot() {
       const params = new URLSearchParams(location.search);
-      const assistant = params.get("assistant_id") || params.get("id") || DEFAULT_ASSISTANT_ID;
- 
+      const assistant = params.get('assistant_id') || params.get('id') || DEFAULT_ASSISTANT_ID;
+
       if (!assistant) {
-        document.getElementById("status").innerHTML =
+        document.getElementById('status').innerHTML =
           '<div class="error"><strong>Error:</strong> No assistant ID. Add ?assistant_id=YOUR_ID to the URL or set DEFAULT_ASSISTANT_ID.</div>';
+        document.getElementById('info').style.display = 'block';
         return;
       }
 
-      // update UI
-      document.getElementById("asstId").textContent = assistant;
-      document.getElementById("pubKey").textContent = "25c7dbea-199b-40c3-bbf1-0db24383addb"; //public api
-      document.getElementById("info").style.display = "block";
-      document.getElementById("status").style.display = "none";
+      // update helper panel (hidden by default)
+      document.getElementById('asstId').textContent = assistant;
+      document.getElementById('pubKey').textContent = VAPI_PUBLIC_KEY; // public key only
+      document.getElementById('status').style.display = 'none';
 
       // load official Vapi HTML Script Tag loader
-      var vapiInstance = null;
       (function (d, t) {
-        var g = d.createElement(t), s = d.getElementsByTagName(t)[0];
-        g.src = "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
+        const g = d.createElement(t), s = d.getElementsByTagName(t)[0];
+        g.src = 'https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js';
         g.defer = true; g.async = true; s.parentNode.insertBefore(g, s);
         g.onload = function () {
-          vapiInstance = window.vapiSDK.run({
-            apiKey: VAPI_PUBLIC_KEY,
-            assistant: assistant,
-            config: { position: "bottom-right", theme: "light", autoprompt: false }
-          });
-          console.log("Vapi widget ready");
+          try {
+            vapiInstance = window.vapiSDK.run({
+              apiKey: VAPI_PUBLIC_KEY,
+              assistant: assistant,
+              // Try to hide the built-in widget; we provide our own UI
+              config: { position: 'bottom-right', theme: 'dark', autoprompt: false }
+            });
+            // Hide any injected UI just in case
+            setTimeout(() => {
+              document.querySelectorAll('[data-vapi-root], .vapi-widget, iframe[src*="vapi" i]').forEach(el => { el.style.display = 'none'; });
+            }, 50);
+            console.log('Vapi widget ready');
+          } catch (e) {
+            document.getElementById('info').style.display = 'block';
+            document.getElementById('status').innerHTML = '<div class="error"><strong>Error:</strong> Failed to initialize Vapi SDK.</div>';
+            document.getElementById('status').style.display = 'block';
+          }
         };
         g.onerror = function () {
-          document.getElementById("status").innerHTML =
-            '<div class="error"><strong>Error:</strong> Failed to load Vapi SDK.</div>';
-          document.getElementById("status").style.display = "block";
+          document.getElementById('info').style.display = 'block';
+          document.getElementById('status').innerHTML = '<div class="error"><strong>Error:</strong> Failed to load Vapi SDK.</div>';
+          document.getElementById('status').style.display = 'block';
         };
-      })(document, "script");
+      })(document, 'script');
+
+      // Controls
+      const btnCall = document.getElementById('btn-call');
+      const btnEnd = document.getElementById('btn-end');
+      const btnMute = document.getElementById('btn-mute');
+      const btnSpeaker = document.getElementById('btn-speaker');
+
+      btnCall.addEventListener('click', async () => {
+        setUI('calling');
+        try {
+          if (vapiInstance?.start) {
+            await vapiInstance.start();
+          } else if (vapiInstance?.toggle) {
+            // fallback if SDK uses toggle
+            await vapiInstance.toggle(true);
+          }
+          setUI('in-call');
+        } catch (e) {
+          console.warn('Start call failed', e);
+          setUI('idle');
+        }
+      });
+
+      btnEnd.addEventListener('click', async () => {
+        try {
+          if (vapiInstance?.stop) {
+            await vapiInstance.stop();
+          } else if (vapiInstance?.toggle) {
+            await vapiInstance.toggle(false);
+          }
+        } catch (e) {
+          console.warn('End call failed', e);
+        } finally {
+          setUI('ended');
+          setTimeout(() => setUI('idle'), 1200);
+          muted = false; btnMute.setAttribute('aria-pressed', 'false');
+          speakerOn = false; btnSpeaker.setAttribute('aria-pressed', 'false');
+        }
+      });
+
+      btnMute.addEventListener('click', async () => {
+        muted = !muted;
+        btnMute.setAttribute('aria-pressed', String(muted));
+        try {
+          if (muted) {
+            if (vapiInstance?.mute) await vapiInstance.mute();
+          } else {
+            if (vapiInstance?.unmute) await vapiInstance.unmute();
+          }
+        } catch (e) { console.warn('Mute toggle failed', e); }
+      });
+
+      btnSpeaker.addEventListener('click', async () => {
+        speakerOn = !speakerOn;
+        btnSpeaker.setAttribute('aria-pressed', String(speakerOn));
+        try {
+          if (vapiInstance?.setSpeaker) await vapiInstance.setSpeaker(speakerOn);
+        } catch (e) { console.warn('Speaker toggle failed', e); }
+      });
+
+      // Initial UI state
+      setUI('idle');
     }
-    document.addEventListener("DOMContentLoaded", boot);
+
+    document.addEventListener('DOMContentLoaded', boot);
   </script>
 </body>
 </html>
