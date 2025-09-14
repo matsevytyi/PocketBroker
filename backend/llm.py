@@ -59,11 +59,11 @@ def get_payload(portfolio: Dict, interest: Optional[str] = None):
             ],
             "search_parameters": {
                 "mode": "auto",
-                "max_search_results": 5,
+                "max_search_results": 3,
                 "from_date": "2025-01-01",
                 "to_date": "2025-12-31"
             },
-            "model": "grok-3"
+            "model": "grok-4"
         }
 
 def send_grok_request(payload: Dict):
