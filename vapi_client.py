@@ -161,7 +161,7 @@ def create_voice_assistant(
             assistant_id = assistant["id"]
             
             # Return assistant ID and frontend URL
-            frontend_url = f"http://localhost:3000/?assistant_id={assistant_id}"
+            frontend_url = f"https://matsevytyi.github.io/PocketBroker/?assistant_id={assistant_id}"
             
             return {
                 "assistant_id": assistant_id,

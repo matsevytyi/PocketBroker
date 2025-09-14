@@ -27,18 +27,13 @@
 
   <script>
     // 🔧 Set your values (or pass assistant via ?assistant_id=...):
-    const VAPI_PUBLIC_KEY = "pk_REPLACE_ME"; // must start with pk_
-    const DEFAULT_ASSISTANT_ID = "asst_REPLACE_ME"; // optional
+    const VAPI_PUBLIC_KEY = "25c7dbea-199b-40c3-bbf1-0db24383addb"; // must start with pk_
+    const DEFAULT_ASSISTANT_ID = "6f388c56-daec-4b02-88c5-5995faa2fdd4"; // optional
 
     async function boot() {
       const params = new URLSearchParams(location.search);
       const assistant = params.get("assistant_id") || params.get("id") || DEFAULT_ASSISTANT_ID;
 
-      if (!VAPI_PUBLIC_KEY || !VAPI_PUBLIC_KEY.startsWith("pk_")) {
-        document.getElementById("status").innerHTML =
-          '<div class="error"><strong>Error:</strong> Missing/invalid Public key (must start with pk_).</div>';
-        return;
-      }
       if (!assistant) {
         document.getElementById("status").innerHTML =
           '<div class="error"><strong>Error:</strong> No assistant ID. Add ?assistant_id=YOUR_ID to the URL or set DEFAULT_ASSISTANT_ID.</div>';
@@ -47,7 +42,7 @@
 
       // update UI
       document.getElementById("asstId").textContent = assistant;
-      document.getElementById("pubKey").textContent = "7afe3faa-ce4b-47a0-a654-dc1e3568837a"; //public api
+      document.getElementById("pubKey").textContent = "25c7dbea-199b-40c3-bbf1-0db24383addb"; //public api
       document.getElementById("info").style.display = "block";
       document.getElementById("status").style.display = "none";
 
