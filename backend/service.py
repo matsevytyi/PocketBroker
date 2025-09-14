@@ -1,7 +1,9 @@
 from collections import defaultdict
 import json
-from typing import Dict, Tuple, List
+from typing import Dict, Optional, Tuple, List
 from utils import request
+from pprint import pprint
+from data import TICKER_MAPPINGS
 
 '''
 Returns the asset information for the given symbol.
@@ -11,11 +13,11 @@ Returns the asset information for the given symbol.
 'v' -> Volume
 '''
 
-def retrieve_asset_info(symbol: str) -> Tuple[Dict, Dict]:
+def retrieve_asset_info(pair: str) -> Tuple[Dict, Dict]:
     response = request(
         method="GET", 
         path="/0/public/Ticker",
-        query={'pair': f'{symbol}USD'}
+        query={'pair': pair}
     )
 
     response_data = response.read().decode('utf-8')
@@ -26,9 +28,7 @@ def retrieve_asset_info(symbol: str) -> Tuple[Dict, Dict]:
         return None, json_data['error']
 
     result = json_data['result']
-    values = list(result.values())
-
-    return values[0], None
+    return result, None
 
 def retrieve_asset_pair_name(symbol1: str, symbol2: str) -> Tuple[Dict, Dict]:
     response = request(
@@ -65,9 +65,10 @@ def retrieve_trades_history() -> Tuple[Dict, Dict]:
     trades = defaultdict(list)
 
     for trade in result['trades'].values():
-        if trade['pair'] in trades:
-            if trade['type'] == 'sell':
+        if trade['type'] == 'sell':
+            if trade['pair'] in trades:
                 trades[trade['pair']] = []
+            continue
 
         trades[trade['pair']].append({
             'pair': trade['pair'],
@@ -89,6 +90,17 @@ def compute_asset_profit_loss(current: float, trades: List[Dict]) -> float:
 
     return current - total
 
+def get_kraken_ticker_pair(symbol: str) -> str:
+    symbol = symbol.upper()
+    
+    for internal_name, mapping_info in TICKER_MAPPINGS.items():
+        if symbol in mapping_info['kraken_ticker']:
+            for pair in mapping_info["kraken_fiat_pairs"]:
+                if "USD" in pair:
+                    return pair
+            
+    return None
+
 def retrieve_portfolio() -> Tuple[Dict, Dict]:
     response = request(
         method="POST", 
@@ -103,6 +115,8 @@ def retrieve_portfolio() -> Tuple[Dict, Dict]:
         return None, json_data['error']
         
     result = json_data['result']
+    print(result)
+
     portfolio = []
 
     trades, error = retrieve_trades_history()
@@ -112,23 +126,45 @@ def retrieve_portfolio() -> Tuple[Dict, Dict]:
 
     total_loss_for_all_assets = 0
 
-    for symbol in result.keys():
-        asset_info, error = retrieve_asset_info(symbol)
-        history = trades.get(f'{symbol}USD', None)
+    assets = {}
 
-        if error or float(result[symbol]) == 0.00:
+    asset_symbols = ""
+    equivalents = {}
+    for symbol in result.keys():
+        kraken_ticker_pair = get_kraken_ticker_pair(symbol)
+
+        if kraken_ticker_pair is None:
             continue
 
-        asset_value = float(result[symbol]) * float(asset_info['c'][0])
+        equivalents[symbol] = kraken_ticker_pair
+        asset_symbols += kraken_ticker_pair + ","
+
+    asset_symbols = asset_symbols[:-1]
+
+    assets_info, error = retrieve_asset_info(asset_symbols.encode())
+
+    if error:
+        return None, error
+
+    for pair, info in assets_info.items():
+        assets[pair] = info
+
+    for ticker, pair in equivalents.items():
+        history = trades.get(pair)
+
+        if float(result[ticker]) == 0.00:
+            continue
+
+        asset_value = float(result[ticker]) * float(assets[pair]['c'][0])
         
         current_loss = compute_asset_profit_loss(asset_value, history) if history else 0
         total_loss_for_all_assets += current_loss
 
         asset_data = {
-            'symbol': symbol,
-            'holding_amount': float(result[symbol]),
+            'symbol': ticker,
+            'holding_amount': float(result[ticker]),
             'profit_loss': current_loss,
-            'price': float(asset_info['c'][0]),
+            'price': float(assets[pair]['c'][0]),
             'value': asset_value
         }
 
@@ -141,13 +177,19 @@ def retrieve_portfolio() -> Tuple[Dict, Dict]:
 
     return data, None
 
-def execute_buy_order(pair: str, amount: float, order_type: str = 'market') -> Tuple[Dict, Dict]:
+def execute_buy_order(pair: str, amount: float, order_type: str = 'market', price: Optional[float] = None) -> Tuple[Dict, Dict]:
     body = {
         'ordertype': order_type,
         'type': 'buy',
         'volume': amount,
         'pair': pair    
     }
+
+    if order_type == 'limit':
+        if not price:
+            return None, 'Price is required for limit orders'
+
+        body['price'] = price
 
     response = request(
         method="POST", 
@@ -163,13 +205,19 @@ def execute_buy_order(pair: str, amount: float, order_type: str = 'market') -> T
 
     return json_data['result'], None
 
-def execute_sell_order(pair: str, amount: float, order_type: str = 'market') -> Tuple[Dict, Dict]:
+def execute_sell_order(pair: str, amount: float, order_type: str = 'market', price: Optional[float] = None) -> Tuple[Dict, Dict]:
     body = {
         'ordertype': order_type,
         'type': 'sell',
         'volume': amount,
         'pair': pair
     }
+
+    if order_type == 'limit':
+        if not price:
+            return None, 'Price is required for limit orders'
+
+        body['price'] = price
 
     response = request(
         method="POST", 
