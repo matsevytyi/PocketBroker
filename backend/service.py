@@ -115,7 +115,6 @@ def retrieve_portfolio() -> Tuple[Dict, Dict]:
         return None, json_data['error']
         
     result = json_data['result']
-    print(result)
 
     portfolio = []
 
@@ -130,6 +129,7 @@ def retrieve_portfolio() -> Tuple[Dict, Dict]:
 
     asset_symbols = ""
     equivalents = {}
+
     for symbol in result.keys():
         kraken_ticker_pair = get_kraken_ticker_pair(symbol)
 
@@ -146,8 +146,11 @@ def retrieve_portfolio() -> Tuple[Dict, Dict]:
     if error:
         return None, error
 
-    for pair, info in assets_info.items():
-        assets[pair] = info
+    total_holdings = float(result['ZUSD'])
+
+    for ticker, pair in equivalents.items():
+        assets[pair] = assets_info[pair]
+        total_holdings += float(assets[pair]['c'][0]) * float(result[ticker])
 
     for ticker, pair in equivalents.items():
         history = trades.get(pair)
@@ -160,19 +163,32 @@ def retrieve_portfolio() -> Tuple[Dict, Dict]:
         current_loss = compute_asset_profit_loss(asset_value, history) if history else 0
         total_loss_for_all_assets += current_loss
 
+        price = float(assets[pair]['c'][0])
+
         asset_data = {
             'symbol': ticker,
             'holding_amount': float(result[ticker]),
             'profit_loss': current_loss,
-            'price': float(assets[pair]['c'][0]),
-            'value': asset_value
+            'price': price,
+            'value': asset_value,
+            'weight': asset_value / total_holdings
         }
 
         portfolio.append(asset_data)
 
+    portfolio.append({
+        'symbol': 'USD',
+        'holding_amount': float(result['ZUSD']),
+        'profit_loss': 0,
+        'price': 1,
+        'value': float(result['ZUSD']),
+        'weight': float(result['ZUSD']) / total_holdings
+    })
+
     data = {
         'positions': portfolio,
         'total_profit_loss': total_loss_for_all_assets,
+        'total_holdings': total_holdings
     }
 
     return data, None
