@@ -46,7 +46,7 @@ export function Hero() {
         </div>
 
         <p className="text-sm text-muted-foreground">
-          "Like having Jordan Belfort in your pocket, but smarter and less likely to get you arrested."
+          &ldquo;Like having Jordan Belfort in your pocket, but smarter and less likely to get you arrested.&rdquo;
         </p>
       </div>
 
@@ -72,12 +72,12 @@ export function Hero() {
                   <div className="space-y-2 sm:space-y-3 lg:space-y-4">
                     <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4">
                       <p className="text-white text-xs sm:text-sm">
-                        "Hey PocketBroker, should I buy Bitcoin?"
+                        &ldquo;Hey PocketBroker, should I buy Bitcoin?&rdquo;
                       </p>
                     </div>
                     <div className="bg-personality/20 backdrop-blur-sm rounded-lg p-3 sm:p-4">
                       <p className="text-white text-xs sm:text-sm">
-                        "Based on market analysis, Bitcoin shows strong support at $42K. Consider a small position..."
+                        &ldquo;Based on market analysis, Bitcoin shows strong support at $42K. Consider a small position...&rdquo;
                       </p>
                     </div>
                   </div>
