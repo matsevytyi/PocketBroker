@@ -84,13 +84,16 @@ def sell():
 
     return jsonify({'data': response, 'error': False}), 200
 
-@app.route("/api/v1/orders", methods=["GET"])
-def orders():
-    pass
+@app.route("/api/v1/recommendation", methods=["POST"])
+def recommendation():
+    portfolio, error = retrieve_portfolio()
 
+    if error:
+        return jsonify({'details': error, 'error': True}), 500
 
+    reasoning = send_grok_request(portfolio)
 
-
+    return jsonify({'data': reasoning, 'error': False}), 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=9080)

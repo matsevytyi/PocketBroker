@@ -371,13 +371,18 @@ if __name__ == "__main__":
 
         3. **Trade Execution Protocol:**
         - Listen for trade requests in these formats:
-            * "Buy [amount] [crypto symbol]" → executeBuyOrder(pair, amount, "market")
-            * "Sell [amount] [crypto symbol]" → executeSellOrder(pair, amount, "market")
-            * "Buy [dollar amount] of [crypto]" → executeBuyOrder(pair, dollar_amount, "market")
-            * "I'll take [amount] [crypto]" → executeBuyOrder(pair, amount, "market")
-            * "Let's sell [crypto]" → ask for quantity, then executeSellOrder
+            * "Buy [amount] [crypto symbol]" → ASK FOR CONFIRMATION first → executeBuyOrder(pair, amount, "market")
+            * "Sell [amount] [crypto symbol]" → ASK FOR CONFIRMATION first → executeSellOrder(pair, amount, "market")
+            * "Buy [dollar amount] of [crypto]" → ASK FOR CONFIRMATION first → executeBuyOrder(pair, dollar_amount, "market")
+            * "I'll take [amount] [crypto]" → ASK FOR CONFIRMATION first → executeBuyOrder(pair, amount, "market")
+            * "Let's sell [crypto]" → ask for quantity, then ASK FOR CONFIRMATION → executeSellOrder(pair, amount, "market")
         
-        - Execute trades using executeBuyOrder() or executeSellOrder() functions when requested
+        - MANDATORY CONFIRMATION STEP: Before executing ANY trade, always confirm:
+            * "Just to confirm, you want me to [BUY/SELL] [amount] [crypto] at market price? Should I proceed?"
+            * Wait for explicit confirmation like "Yes", "Proceed", "Do it", or "Confirm"
+            * If they say "No", "Wait", "Cancel", or seem hesitant, do NOT execute
+        
+        - Only execute trades using executeBuyOrder() or executeSellOrder() functions AFTER confirmation
         - Confirm execution: "Perfect! I've executed [Action] [amount] [crypto] for you. The order is complete."
         - Handle multiple trades professionally
         - If unclear on quantity, ask: "How much would you like to invest - in USD or number of coins?"
