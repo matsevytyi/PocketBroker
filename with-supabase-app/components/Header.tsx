@@ -43,6 +43,43 @@ export function Header() {
               
             </Link>
           </div>
+          
+          {/* Center Navigation Links - Hidden on Mobile */}
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link
+              href="/onboarding"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                isScrolled ? "text-foreground/80" : "text-foreground"
+              }`}
+            >
+              Onboarding
+            </Link>
+            {/* <Link
+              href="/portfolio"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                isScrolled ? "text-foreground/80" : "text-foreground"
+              }`}
+            >
+              Portfolio
+            </Link>
+            <Link
+              href="/analytics"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                isScrolled ? "text-foreground/80" : "text-foreground"
+              }`}
+            >
+              Analytics
+            </Link>
+            <Link
+              href="/settings"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                isScrolled ? "text-foreground/80" : "text-foreground"
+              }`}
+            >
+              Settings
+            </Link> */}
+          </nav>
+          
           <div className={`transition-all duration-300 ease-in-out ${
             isScrolled ? "scale-95" : "scale-100"
           }`}>
