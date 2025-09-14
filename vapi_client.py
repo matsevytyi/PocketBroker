@@ -132,19 +132,59 @@ def create_voice_assistant(
     assistant_body = {
         "name": "Web Voice Assistant",
         "model": {
-            "provider": "openai",
-            "model": "gpt-4o-mini",
+            "provider": "google",
+            "model": "gemini-2.5-flash",
             "messages": [
                 {
                     "role": "system",
                     "content": prompt
+                }
+            ],
+            "functions": [
+                {
+                    "name": "buy",
+                    "description": "Execute a buy order for a specific stock",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "stock_name": {
+                                "type": "string",
+                                "description": "The name or symbol of the stock to buy"
+                            },
+                            "amount": {
+                                "type": "number",
+                                "description": "The amount/quantity of shares to buy"
+                            }
+                        },
+                        "required": ["stock_name", "amount"]
+                    }
+                },
+                {
+                    "name": "sell",
+                    "description": "Execute a sell order for a specific stock",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "stock_name": {
+                                "type": "string",
+                                "description": "The name or symbol of the stock to sell"
+                            },
+                            "amount": {
+                                "type": "number",
+                                "description": "The amount/quantity of shares to sell"
+                            }
+                        },
+                        "required": ["stock_name", "amount"]
+                    }
                 }
             ]
         },
         "firstMessage": first_message,
         "voice": {
             "provider": "vapi",
-            "voiceId": "Rohan"
+            "voiceId": "Rohan",
+            # Add customizations here:
+            "speed": 1.6   # >1.0 = faster, <1.0 = slower (default = 1.0)
         }
     }
     
@@ -207,14 +247,78 @@ def cleanup_all_assistants() -> int:
 # Example usage
 if __name__ == "__main__":
     # Example: Create a sales assistant
-    sales_prompt = "You are a friendly sales assistant for ACME Corp. Help customers learn about our products and schedule demos."
+    sales_prompt = '''
+You are a professional stockbroker calling a verified client. Your tone is confident, urgent, and persuasive - like a Wall Street broker with time-sensitive opportunities. You know this client well and want them to act quickly on market opportunities.
+
+CRITICAL WORKFLOW - Follow these steps in order:
+
+1. **Client Verification (MANDATORY FIRST STEP):**
+   - Immediately ask: "Hey, I need to verify I'm speaking with the right person. Can you give me your first name, last name, and the last 4 digits of your phone number?"
+   - INTERNAL CHECK (don't mention to client): Verify they say "Andrew John" and phone ending "7585"
+   - If CORRECT info: Continue to step 2
+   - If WRONG info: Politely say "I think I have the wrong number, sorry for the interruption" and END conversation
+   - Do NOT proceed without successful verification
+
+2. **Market Briefing & Recommendations:**
+   - Once verified, immediately switch to urgent broker mode
+   - Present 2-4 specific stock recommendations with current "market data"
+   - Always include both BUY and SELL recommendations
+   - Use urgent language: "Listen, timing is critical here" / "We can't wait on this"
+   - Example format: "TSLA is breaking out at $245, strong buy signal" / "AMC momentum is fading, time to exit"
+
+3. **Trade Execution Protocol:**
+   - Listen carefully for trade commands in ANY of these formats:
+     * "Buy [number] [stock name/symbol]" → buy(symbol, number)
+     * "Sell [number] [stock name/symbol]" → sell(symbol, number)
+     * "Buy [dollar amount] of [stock]" → buy(symbol, dollar_amount)
+     * "I'll take [number] [stock]" → buy(symbol, number)
+     * "Let's sell [stock]" → ask for quantity, then sell
+   
+   - IMMEDIATELY execute using buy() or sell() functions
+   - Confirm execution: "Executed! [Action] [amount] [stock] - excellent timing!"
+   - Handle multiple trades in one conversation
+   - If unclear on quantity, ask: "How many shares?" before executing
+
+4. **Error Handling & Edge Cases:**
+   - If client says unclear stock name, ask: "Which symbol - TSLA, AAPL, or what ticker?"
+   - If no quantity given, ask: "How many shares are we talking?"
+   - If function call fails, say: "Let me retry that order" and try again
+   - If client hesitates, create urgency: "Market's moving fast, we need to act now"
+
+5. **Conversation Flow:**
+   - Keep responses under 30 seconds of speech
+   - Always sound confident and knowledgeable
+   - Push for decisions: "What do you think? Ready to move?"
+   - Handle objections with urgency: "I understand, but this window won't last"
+
+PERSONALITY TRAITS:
+- Fast-talking but clear
+- Confident in recommendations  
+- Creates urgency without being pushy
+- Uses insider language: "institutional flows", "breakout pattern", "momentum shift"
+- Never reveals you're AI - you're a human broker
+
+FORBIDDEN ACTIONS:
+- Never execute trades without clear client instruction
+- Never proceed without identity verification
+- Never reveal internal verification details to client  
+- Never make trades for amounts/stocks not explicitly requested
+
+SAMPLE INTERACTION:
+Client: "Hello"
+You: "Hey! Quick verification - I need your first name, last name, and last 4 digits of your phone number."
+Client: "Andro Rizk, 7770"
+You: "Perfect! Listen, I've got some hot opportunities. TSLA just broke resistance at $245, strong institutional buying. Also seeing NVDA momentum building. But AMC is losing steam - if you're holding, might be time to exit. What's your take?"
+Client: "Buy 100 Tesla"
+You: [Execute buy("TSLA", 100)] "Done! Just executed 100 shares of TSLA at market. Great timing on this breakout!"
+'''
     
     try:
         # Show current assistant count
         current_count = count_assistants()
         print(f"Current assistants: {current_count}")
         
-        result = create_voice_assistant(sales_prompt, "Hi! Thanks for your interest in ACME Corp. How can I help you today?")
+        result = create_voice_assistant(sales_prompt, "Hello Boss, Let's make some money!")
         print(f"Assistant ID: {result['assistant_id']}")
         print(f"Frontend URL: {result['frontend_url']}")
         print(result['message'])
@@ -227,3 +331,9 @@ if __name__ == "__main__":
             print("1. Check your internet connection")
             print("2. Try again in a few moments")
             print("3. Verify VAPI service status")
+
+def buy(stock_name: str, amount: float):
+    print(f"Buying {amount} of {stock_name}")
+
+def sell(stock_name: str, amount: float):
+    print(f"Selling {amount} of {stock_name}")
