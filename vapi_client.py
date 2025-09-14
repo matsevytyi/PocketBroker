@@ -145,14 +145,14 @@ def create_voice_assistant(
                 "type": "apiRequest",
                 "function": { "name": "api_request_tool" },
                 "name": "getPortfolio",
-                "url": "https://pocketbroker.vercel.app/api/v1/portfolio",
+                "url": "https://apipocketbroker.vercel.app/api/v1/portfolio",
                 "method": "GET"
             },
             {
                 "type": "apiRequest",
                 "function": { "name": "api_request_tool" },
                 "name": "getAssetInfo",
-                "url": "https://pocketbroker.vercel.app/api/v1/assets/{{pair}}",
+                "url": "https://apipocketbroker.vercel.app/api/v1/assets/{{pair}}",
                 "method": "GET",
                 "body": {
                     "type": "object",
@@ -169,7 +169,7 @@ def create_voice_assistant(
                 "type": "apiRequest",
                 "function": { "name": "api_request_tool" },
                 "name": "getRecommendation",
-                "url": "https://pocketbroker.vercel.app/api/v1/recommendation",
+                "url": "https://apipocketbroker.vercel.app/api/v1/recommendation",
                 "method": "POST",
                 "body": {
                     "type": "object",
@@ -223,7 +223,7 @@ def create_voice_assistant(
                 "type": "apiRequest",
                 "function": { "name": "api_request_tool" },
                 "name": "executeBuyOrder",
-                "url": "https://pocketbroker.vercel.app/api/v1/buy",
+                "url": "https://apipocketbroker.vercel.app/api/v1/buy",
                 "method": "POST",
                 "body": {
                     "type": "object",
@@ -252,7 +252,7 @@ def create_voice_assistant(
                 "type": "apiRequest",
                 "function": { "name": "api_request_tool" },
                 "name": "executeSellOrder",
-                "url": "https://pocketbroker.vercel.app/api/v1/sell",
+                "url": "https://apipocketbroker.vercel.app/api/v1/sell",
                 "method": "POST",
                 "body": {
                     "type": "object",
@@ -362,11 +362,7 @@ if __name__ == "__main__":
         2. **Portfolio Review & Market Analysis:**
         - Once verified, check their current portfolio using getPortfolio()
         - Present their current positions, P&L, and portfolio performance in a clear, informative way
-        - Provide thoughtful market analysis and insights
-        - Share 2-3 relevant crypto observations or opportunities
-        - Present both potential BUY and SELL considerations
-        - Use informative language: "I'm seeing some interesting developments in..." / "Here's what I'm noticing in the market..."
-        - Example format: "BTC is showing strong support at $45K, could be a good entry point" / "ETH has had a nice run, might be worth considering some profit-taking"
+        
 
         3. **Trade Execution Protocol:**
         - Listen for trade requests in these formats:
@@ -376,12 +372,14 @@ if __name__ == "__main__":
             * "I'll take [amount] [crypto]" → ASK FOR CONFIRMATION first → executeBuyOrder(pair, amount, "market")
             * "Let's sell [crypto]" → ask for quantity, then ASK FOR CONFIRMATION → executeSellOrder(pair, amount, "market")
         
-        - MANDATORY CONFIRMATION STEP: Before executing ANY trade, always confirm:
+        - MANDATORY CONFIRMATION STEP: Before executing ANY trade, ALWAYS confirm:
             * "Just to confirm, you want me to [BUY/SELL] [amount] [crypto] at market price? Should I proceed?"
-            * Wait for explicit confirmation like "Yes", "Proceed", "Do it", or "Confirm"
-            * If they say "No", "Wait", "Cancel", or seem hesitant, do NOT execute
+            * NEVER execute without explicit confirmation like "Yes", "Proceed", "Do it", "Confirm", or "Go ahead"
+            * If they say "No", "Wait", "Cancel", "Stop", or seem hesitant, do NOT execute
+            * If unclear response, ask again: "I need a clear yes or no - should I execute this trade?"
         
-        - Only execute trades using executeBuyOrder() or executeSellOrder() functions AFTER confirmation
+        - CRITICAL: Only execute trades using executeBuyOrder() or executeSellOrder() functions AFTER receiving clear confirmation
+        - NEVER execute trades immediately upon request - confirmation is MANDATORY
         - Confirm execution: "Perfect! I've executed [Action] [amount] [crypto] for you. The order is complete."
         - Handle multiple trades professionally
         - If unclear on quantity, ask: "How much would you like to invest - in USD or number of coins?"
