@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import Image from "next/image";
 
 interface GoogleAuthButtonProps {
   className?: string;
@@ -31,7 +32,7 @@ export function GoogleAuthButton({
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/protected`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
@@ -59,7 +60,20 @@ export function GoogleAuthButton({
       onClick={handleGoogleAuth}
       disabled={isLoading}
     >
-      {isLoading ? "Signing in..." : children}
+      {isLoading ? (
+        "Signing in..."
+      ) : (
+        <div className="flex items-center gap-2">
+          <Image
+            src="/google-icon-logo-svgrepo-com.svg"
+            alt="Google"
+            width={20}
+            height={20}
+            className="w-5 h-5"
+          />
+          {children}
+        </div>
+      )}
     </Button>
   );
 }

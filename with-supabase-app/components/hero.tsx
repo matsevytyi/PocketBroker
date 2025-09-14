@@ -23,7 +23,7 @@ export function Hero() {
         <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Shield className="h-4 w-4 text-personality flex-shrink-0" />
-            <span>Research Before Trade</span>
+            <span>Research Before Every Trade</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Brain className="h-4 w-4 text-personality flex-shrink-0" />
@@ -31,7 +31,7 @@ export function Hero() {
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Mic className="h-4 w-4 text-personality flex-shrink-0" />
-            <span>Voice Commands</span>
+            <span>Order with natural Voice Commands</span>
           </div>
         </div>
 

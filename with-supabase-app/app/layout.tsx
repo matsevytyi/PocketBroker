@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Header } from "@/components/Header";
 import { ConditionalFooter } from "@/components/ConditionalFooter";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -43,6 +44,7 @@ export default function RootLayout({
             </div>
             <ConditionalFooter />
           </div>
+          <Toaster position="top-center" />
         </ThemeProvider>
       </body>
     </html>

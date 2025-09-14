@@ -31,7 +31,7 @@ export function Header() {
           isScrolled ? "h-14" : "h-16"
         }`}
       >
-        <div className="w-full max-w-5xl flex justify-between items-center px-5 transition-all duration-300 ease-in-out">
+        <div className="w-full max-w-5xl flex justify-between items-center px-5 transition-all duration-300 ease-in-out relative">
           <div className="flex gap-5 items-center font-semibold">
             <Link
               href={"/"}
@@ -45,7 +45,7 @@ export function Header() {
           </div>
           
           {/* Center Navigation Links - Hidden on Mobile */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center space-x-8 absolute left-1/2 transform -translate-x-1/2">
             <Link
               href="/onboarding"
               className={`text-sm font-medium transition-colors hover:text-primary ${
