@@ -18,7 +18,9 @@ def get_pair_name():
     if error:
         return jsonify({'details': error, 'error': True}), 500
 
-    return jsonify({'data': response, 'error': False}), 200
+    data = response.values()
+
+    return jsonify({'data': data, 'error': False}), 200
 
 @app.route("/api/v1/asset/<ticker>", methods=["GET"])
 def get_asset(ticker: str):
@@ -45,11 +47,13 @@ def buy():
     pair = request_body['pair']
     amount = request_body['amount']
     order_type = request_body['ordertype']
+    price = request_body.get('price', None)
 
     response, error = execute_buy_order(
         pair=pair,
         amount=amount,
-        order_type=order_type
+        order_type=order_type,
+        price=price
     )
 
     if error:
@@ -64,11 +68,13 @@ def sell():
     pair = request_body['pair']
     amount = request_body['amount']
     order_type = request_body['ordertype']
+    price = request_body.get('price', None)
 
     response, error = execute_sell_order(
         pair=pair,
         amount=amount,
-        order_type=order_type
+        order_type=order_type,
+        price=price
     )
 
     if error:
