@@ -2,7 +2,6 @@ from collections import defaultdict
 import json
 from typing import Dict, Optional, Tuple, List
 from utils import request
-from pprint import pprint
 from data import TICKER_MAPPINGS
 
 '''

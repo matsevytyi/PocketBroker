@@ -4,19 +4,9 @@
 # from langchain.tools import Tool
 # from langchain.agents import AgentExecutor, create_tool_calling_agent
 # from langchain.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
-from typing import Annotated, List, Dict, Any
 from dotenv import load_dotenv
 import requests
-import json
 import os
-from pydantic import BaseModel, Field
-from typing import Literal
-import uuid
-from openai import OpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.output_parsers import PydanticOutputParser
-from langchain_core.prompts import ChatPromptTemplate
 import json
 
 # Initialize Gemini model
@@ -24,9 +14,6 @@ import json
 from typing import Dict
 from dotenv import load_dotenv
 import requests
-import json
-import os
-import uuid
 import json
 
 ## Load env variables
