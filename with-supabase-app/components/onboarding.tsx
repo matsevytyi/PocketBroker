@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +39,8 @@ const steps = [
 ];
 
 export default function OnboardingPage() {
+  const router = useRouter();
+  const supabase = createClient();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<OnboardingData>({
     firstName: "",
@@ -96,17 +101,48 @@ export default function OnboardingPage() {
     setIsSubmitting(true);
     
     try {
-      // Here you would typically send the data to your backend
-      console.log('Onboarding data:', formData);
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      if (userError || !user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Update profile with onboarding data
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          phone_number: formData.phoneNumber,
+          pin_hash: formData.password, // Storing PIN as plain text as requested
+          risk_tolerance: formData.riskTolerance,
+          kraken_api_key: formData.krakenApiKey,
+          onboarding_completed: true
+        })
+        .eq('id', user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
       
-      // Handle success (redirect, show success message, etc.)
-      alert('Onboarding completed successfully!');
+      // Show success toast
+      toast.success("Onboarding completed successfully!", {
+        description: "Welcome to PocketBroker! Let's start your investment journey.",
+        duration: 3000,
+      });
+      
+      // Redirect to /call after a short delay
+      setTimeout(() => {
+        router.push('/call');
+      }, 1500);
+      
     } catch (error) {
       console.error('Onboarding error:', error);
-      alert('There was an error completing onboarding. Please try again.');
+      toast.error("Onboarding failed", {
+        description: "There was an error completing onboarding. Please try again.",
+        duration: 4000,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -122,19 +158,9 @@ export default function OnboardingPage() {
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-6">
-            <div className="text-center mb-8">
-              <User className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">
-                Personal Information
-              </h2>
-              <p className="text-slate-600 dark:text-slate-400 mt-2">
-                Tell us about yourself to get started
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="space-y-2">
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="firstName">First Name</Label>
                 <Input
                   id="firstName"
@@ -146,7 +172,7 @@ export default function OnboardingPage() {
                 />
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="lastName">Last Name</Label>
                 <Input
                   id="lastName"
@@ -163,19 +189,9 @@ export default function OnboardingPage() {
 
       case 2:
         return (
-          <div className="space-y-6">
-            <div className="text-center mb-8">
-              <Shield className="h-12 w-12 text-green-600 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">
-                Security
-              </h2>
-              <p className="text-slate-600 dark:text-slate-400 mt-2">
-                Secure your account with a phone number and PIN
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="space-y-2">
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="phoneNumber" className="flex items-center gap-2">
                   <Phone className="h-4 w-4" />
                   Phone Number
@@ -190,7 +206,7 @@ export default function OnboardingPage() {
                 />
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="password">4-Digit PIN</Label>
                 <div className="relative">
                   <Input
@@ -219,19 +235,9 @@ export default function OnboardingPage() {
 
       case 3:
         return (
-          <div className="space-y-6">
-            <div className="text-center mb-8">
-              <Key className="h-12 w-12 text-purple-600 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">
-                Investment Details
-              </h2>
-              <p className="text-slate-600 dark:text-slate-400 mt-2">
-                Set your investment preferences and connect your exchange
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="space-y-2">
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <div className="space-y-1">
                 <Label>Risk Tolerance</Label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -262,7 +268,7 @@ export default function OnboardingPage() {
                 )}
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="krakenApiKey">Kraken API Key</Label>
                 <div className="relative">
                   <Input
@@ -296,26 +302,25 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold flex items-center justify-center gap-2">
-            <User className="h-8 w-8 text-blue-600" />
-            Welcome! Let&apos;s Get Started
+    <div className="min-h-screen bg-background flex items-center justify-center p-2 sm:p-4 lg:p-6">
+      <Card className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-2xl mx-auto">
+        <CardHeader className="text-center px-4 sm:px-6 pb-2">
+          <CardTitle className="text-xl sm:text-2xl lg:text-3xl font-bold flex items-center justify-center gap-2">
+            Welcome to PocketBroker! Let&apos;s Get Started
           </CardTitle>
-          <CardDescription className="text-lg">
-            Complete your profile to begin your investment journey
+          <CardDescription className="text-sm sm:text-base lg:text-lg">
+            Quickly complete your profile to begin your investment journey
           </CardDescription>
         </CardHeader>
         
-        <CardContent>
+        <CardContent className="px-4 sm:px-6 pt-2">
           {/* Progress Bar */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+          <div className="mb-3 sm:mb-4">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">
                 Step {currentStep} of 3: {steps[currentStep - 1]?.title}
               </span>
-              <span className="text-sm text-slate-500">
+              <span className="text-xs sm:text-sm text-slate-500">
                 {Math.round(progressValue)}% Complete
               </span>
             </div>
@@ -323,17 +328,17 @@ export default function OnboardingPage() {
           </div>
 
           {/* Step Content */}
-          <div className="min-h-[400px]">
+          <div className="min-h-[150px] sm:min-h-[180px] lg:min-h-[220px]">
             {renderStepContent()}
           </div>
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between pt-6 border-t">
+          <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 pt-3 sm:pt-4 border-t">
             <Button
               variant="outline"
               onClick={prevStep}
               disabled={currentStep === 1}
-              className="flex items-center gap-2"
+              className="flex items-center justify-center gap-2 w-full sm:w-auto order-2 sm:order-1"
             >
               <ArrowLeft className="h-4 w-4" />
               Back
@@ -343,7 +348,7 @@ export default function OnboardingPage() {
               <Button
                 onClick={nextStep}
                 disabled={!currentStepValid}
-                className="flex items-center gap-2"
+                className="flex items-center justify-center gap-2 w-full sm:w-auto order-1 sm:order-2"
               >
                 Next
                 <ArrowRight className="h-4 w-4" />
@@ -352,17 +357,19 @@ export default function OnboardingPage() {
               <Button
                 onClick={handleSubmit}
                 disabled={!currentStepValid || isSubmitting}
-                className="flex items-center gap-2"
+                className="flex items-center justify-center gap-2 w-full sm:w-auto order-1 sm:order-2"
               >
                 {isSubmitting ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Completing Setup...
+                    <span className="hidden sm:inline">Completing Setup...</span>
+                    <span className="sm:hidden">Completing...</span>
                   </>
                 ) : (
                   <>
                     <Check className="h-4 w-4" />
-                    Complete Onboarding
+                    <span className="hidden sm:inline">Complete Onboarding</span>
+                    <span className="sm:hidden">Complete</span>
                   </>
                 )}
               </Button>
