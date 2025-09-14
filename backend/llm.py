@@ -11,7 +11,7 @@ import json
 
 # Initialize Gemini model
 
-from typing import Dict
+from typing import Dict, Optional
 from dotenv import load_dotenv
 import requests
 import json
@@ -22,7 +22,7 @@ load_dotenv()
 ## Initialize models
 grok_api_url = "https://api.x.ai/v1/chat/completions"
 
-def get_payload(portfolio: Dict):
+def get_payload(portfolio: Dict, interest: Optional[str] = None):
     return {
         "messages": [
             {
@@ -39,6 +39,8 @@ def get_payload(portfolio: Dict):
                 ## Research Request
                 Please conduct thorough market research on current cryptocurrency trends, market conditions, and emerging opportunities. Based on this research and my existing portfolio composition, provide a smart diversification recommendation on what i should buy.
 
+                ## Interest
+                {interest}
 
                 ## Analysis Requirements
                 1. **Market Research**: Analyze current market conditions, trends, and sentiment

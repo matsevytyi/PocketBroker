@@ -214,6 +214,10 @@ def create_voice_assistant(
                         "hash": { "type": "string", "description": "Deterministic snapshot hash" },
                         "ttl_seconds": { "type": "number", "description": "Freshness window" }
                         }
+                    },
+                    "interest": {
+                        "type": "string",
+                        "description": "Optional cryptocurrency the user is interested in (e.g., 'Bitcoin', 'Ethereum', 'Solana'). Can be null if no specific interest."
                     }
                     },
                     "required": ["userId"]
