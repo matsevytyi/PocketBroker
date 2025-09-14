@@ -2,7 +2,7 @@ import json
 from flask import Flask, jsonify, request
 from dotenv import load_dotenv
 from service import retrieve_asset_info, retrieve_portfolio, execute_buy_order, retrieve_asset_pair_name, execute_sell_order
-from llm import get_stock_recommendation, parse_for_kraken_order,attempt_order_with_intent
+from llm import send_grok_request
 
 load_dotenv()
 
@@ -96,4 +96,4 @@ def recommendation():
     return jsonify({'data': reasoning, 'error': False}), 200
 
 if __name__ == '__main__':
-    app.run(debug=True, port=9080)
+    app.run(debug=True, port=8080)

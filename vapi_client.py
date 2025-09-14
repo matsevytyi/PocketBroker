@@ -6,7 +6,6 @@ assistants using VAPI's API.
 """
 
 import os
-import pprint
 import requests
 import time
 from typing import List, Dict
@@ -420,6 +419,17 @@ if __name__ == "__main__":
         - executeSellOrder(pair, amount, ordertype): Execute crypto sell orders  
         - getRecommendation(): Get AI-powered market analysis and recommendations
         - getAssetInfo(pair): Get detailed information about specific crypto pairs
+
+        MINIMUM TRADING AMOUNTS (Important - Always Check Before Trading):
+        - Solana (SOL): Minimum 0.02 SOL
+        - Bitcoin (BTC): Minimum 0.00005 BTC  
+        - Ethereum (ETH): Minimum 0.002 ETH
+        - Ripple (XRP): Minimum 1.65 XRP
+        
+        TRADING VALIDATION:
+        - Always verify the requested amount meets the minimum requirements before confirmation
+        - If amount is below minimum, inform client: "The minimum for [crypto] is [amount]. Would you like to adjust your order?"
+        - Suggest rounding up to minimum if client requests below threshold
 
         FORBIDDEN ACTIONS:
         - Never execute trades without clear client instruction
